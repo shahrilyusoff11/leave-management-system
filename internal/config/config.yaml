@@ -1,0 +1,30 @@
+server:
+  port: "8080"
+  env: "development"
+  read_timeout: "15s"
+  write_timeout: "15s"
+  idle_timeout: "60s"
+
+database:
+  host: "localhost"
+  port: "5432"
+  user: "lms_user"
+  password: "lms_password"
+  name: "leave_management_system"
+  sslmode: "disable"
+
+jwt:
+  secret_key: "your-secret-key-change-in-production"
+  access_token_ttl: "24h"
+
+leave:
+  max_carry_forward_days: 5
+  working_days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+  escalation_days: 7
+
+email:
+  host: "smtp.gmail.com"
+  port: 587
+  username: ""
+  password: ""
+  from: "noreply@company.com"

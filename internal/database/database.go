@@ -1,0 +1,81 @@
+package database
+
+import (
+	"fmt"
+	"leave-management-system/internal/config"
+	"leave-management-system/internal/models"
+	"time"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
+
+type Database struct {
+	DB *gorm.DB
+}
+
+func NewDatabase(cfg *config.DatabaseConfig, gormLogger logger.Interface) (*Database, error) {
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name, cfg.SSLMode)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: gormLogger,
+		NowFunc: func() time.Time {
+			return time.Now().UTC()
+		},
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database instance: %w", err)
+	}
+
+	// Connection pool settings
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	return &Database{DB: db}, nil
+}
+
+func (d *Database) Close() error {
+	sqlDB, err := d.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
+func (d *Database) CreateSuperAdmin(email, passwordHash, firstName, lastName string) error {
+	var count int64
+	d.DB.Model(&models.User{}).Where("role = ?", models.RoleSysAdmin).Count(&count)
+
+	if count > 0 {
+		return nil
+	}
+
+	superAdmin := models.User{
+		Email:        email,
+		PasswordHash: passwordHash,
+		FirstName:    firstName,
+		LastName:     lastName,
+		Role:         models.RoleSysAdmin,
+		Department:   "IT",
+		Position:     "System Administrator",
+		JoinedDate:   time.Now(),
+		IsConfirmed:  true,
+		IsActive:     true,
+	}
+
+	return d.DB.Create(&superAdmin).Error
+}
+
+// Transaction wrapper for data integrity
+func (d *Database) Transaction(fn func(tx *gorm.DB) error) error {
+	return d.DB.Transaction(fn)
+}
