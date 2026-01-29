@@ -18,39 +18,39 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port         string
-	Env          string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
+	Port         string        `mapstructure:"port"`
+	Env          string        `mapstructure:"env"`
+	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout time.Duration `mapstructure:"write_timeout"`
+	IdleTimeout  time.Duration `mapstructure:"idle_timeout"`
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Name     string
-	SSLMode  string
+	Host     string `mapstructure:"host"`
+	Port     string `mapstructure:"port"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	Name     string `mapstructure:"name"`
+	SSLMode  string `mapstructure:"sslmode"`
 }
 
 type JWTConfig struct {
-	SecretKey      string
-	AccessTokenTTL time.Duration
+	SecretKey      string        `mapstructure:"secret_key"`
+	AccessTokenTTL time.Duration `mapstructure:"access_token_ttl"`
 }
 
 type LeaveConfig struct {
-	MaxCarryForwardDays int
-	WorkingDays         []string // ["Monday", "Tuesday", ...]
-	EscalationDays      int
+	MaxCarryForwardDays int      `mapstructure:"max_carry_forward_days"`
+	WorkingDays         []string `mapstructure:"working_days"`
+	EscalationDays      int      `mapstructure:"escalation_days"`
 }
 
 type EmailConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	From     string
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	From     string `mapstructure:"from"`
 }
 
 func LoadConfig(logger *zap.Logger) (*Config, error) {

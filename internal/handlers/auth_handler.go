@@ -63,7 +63,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Generate JWT token
-	token, err := h.jwtManager.Generate(user)
+	token, claims, err := h.jwtManager.Generate(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -75,8 +75,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	h.userService.UpdateUser(user)
 
 	// Return response
-	claims, _ := h.jwtManager.ExtractClaims(token)
-
 	c.JSON(http.StatusOK, LoginResponse{
 		Token:     token,
 		User:      *user,

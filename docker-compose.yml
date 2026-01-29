@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: leave_management_system
+      POSTGRES_USER: lms_user
+      POSTGRES_PASSWORD: lms_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lms_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  lms-api:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: lms_user
+      DATABASE_PASSWORD: lms_password
+      DATABASE_NAME: leave_management_system
+      JWT_SECRET_KEY: your-secret-key-change-in-production
+      SERVER_ENV: development
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/root/config/config.yaml
+      - ./uploads:/root/uploads
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

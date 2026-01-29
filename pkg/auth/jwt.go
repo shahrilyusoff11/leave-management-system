@@ -26,7 +26,7 @@ func NewJWTManager(secretKey string, tokenDuration time.Duration) *JWTManager {
 	return &JWTManager{secretKey: secretKey, tokenDuration: tokenDuration}
 }
 
-func (manager *JWTManager) Generate(user *models.User) (string, error) {
+func (manager *JWTManager) Generate(user *models.User) (string, *Claims, error) {
 	claims := Claims{
 		UserID: user.ID,
 		Email:  user.Email,
@@ -38,7 +38,11 @@ func (manager *JWTManager) Generate(user *models.User) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(manager.secretKey))
+	signedToken, err := token.SignedString([]byte(manager.secretKey))
+	if err != nil {
+		return "", nil, err
+	}
+	return signedToken, &claims, nil
 }
 
 func (manager *JWTManager) Verify(accessToken string) (*Claims, error) {

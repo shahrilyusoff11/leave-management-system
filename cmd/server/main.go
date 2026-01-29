@@ -34,6 +34,10 @@ func main() {
 	if err != nil {
 		appLogger.Fatal("Failed to load config", zap.Error(err))
 	}
+	appLogger.Info("Loaded configuration",
+		zap.String("JWT_TTL", cfg.JWT.AccessTokenTTL.String()),
+		zap.String("Env", cfg.Server.Env),
+	)
 
 	// Initialize database
 	db, err := database.NewDatabase(&cfg.Database, logger.NewGormLogger(appLogger))

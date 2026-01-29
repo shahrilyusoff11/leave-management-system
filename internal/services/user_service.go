@@ -4,6 +4,7 @@ import (
 	"errors"
 	"leave-management-system/internal/models"
 	"leave-management-system/pkg/logger"
+	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -22,86 +23,142 @@ func NewUserService(db *gorm.DB, auditLogger *logger.AuditLogger) *UserService {
 	}
 }
 
-func (s *UserService) GetUserByEmail(email string) (*models.User, error) {
+func (us *UserService) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
-	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
+	err := us.db.Where("email = ?", email).First(&user).Error
+	return &user, err
 }
 
-func (s *UserService) GetUser(id uuid.UUID) (*models.User, error) {
+func (us *UserService) GetUser(id uuid.UUID) (*models.User, error) {
 	var user models.User
-	if err := s.db.First(&user, "id = ?", id).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
+	err := us.db.First(&user, "id = ?", id).Error
+	return &user, err
 }
 
-func (s *UserService) UpdateUser(user *models.User) error {
-	return s.db.Save(user).Error
-}
-
-func (s *UserService) ChangePassword(userID uuid.UUID, currentPassword, newPassword string) error {
-	user, err := s.GetUser(userID)
-	if err != nil {
-		return err
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
-		return errors.New("invalid current password")
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	user.PasswordHash = string(hashedPassword)
-	return s.db.Save(user).Error
-}
-
-func (s *UserService) GetUserWithDetails(userID uuid.UUID) (*models.User, error) {
+func (us *UserService) GetUserWithDetails(id uuid.UUID) (*models.User, error) {
 	var user models.User
-	// Preload Manager or other relations if needed
-	if err := s.db.Preload("Manager").First(&user, "id = ?", userID).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
+	err := us.db.Preload("Manager").
+		Preload("LeaveEntitlements").
+		Preload("ManagedUsers").
+		First(&user, "id = ?", id).Error
+	return &user, err
 }
 
-func (s *UserService) UpdateProbationStatus(userID uuid.UUID, isConfirmed bool, notes string) error {
-	user, err := s.GetUser(userID)
-	if err != nil {
-		return err
-	}
-
-	// Logic to update status
-	// user.IsProbation = !isConfirmed // Example logic
-	// user.ProbationNotes = notes
-
-	return s.db.Save(user).Error
-}
-
-// Methods required by HRHandler (inferring signatures)
-func (s *UserService) GetAllUsers() ([]models.User, error) {
+func (us *UserService) GetAllUsers() ([]models.User, error) {
 	var users []models.User
-	if err := s.db.Find(&users).Error; err != nil {
-		return nil, err
+	err := us.db.Preload("Manager").Find(&users).Error
+	return users, err
+}
+
+func (us *UserService) CreateUser(user *models.User) error {
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("Default@123"), bcrypt.DefaultCost)
+	if err != nil {
+		return err
 	}
-	return users, nil
+	user.PasswordHash = string(hashedPassword)
+
+	// Set default values
+	if user.JoinedDate.IsZero() {
+		user.JoinedDate = time.Now()
+	}
+
+	return us.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(user).Error; err != nil {
+			return err
+		}
+
+		// Create default leave balances
+		return us.createDefaultLeaveBalances(tx, user.ID, user.JoinedDate.Year())
+	})
 }
 
-func (s *UserService) CreateUser(user *models.User) error {
-	return s.db.Create(user).Error
-}
+func (us *UserService) createDefaultLeaveBalances(tx *gorm.DB, userID uuid.UUID, year int) error {
+	// Create annual leave balance
+	annualBalance := models.LeaveBalance{
+		ID:               uuid.New(),
+		UserID:           userID,
+		LeaveType:        models.LeaveTypeAnnual,
+		Year:             year,
+		TotalEntitlement: 8, // Default for first year
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
 
-func (s *UserService) ConfirmProbation(userID uuid.UUID) error {
-	// Implementation stub
+	// Create sick leave balance
+	sickBalance := models.LeaveBalance{
+		ID:               uuid.New(),
+		UserID:           userID,
+		LeaveType:        models.LeaveTypeSick,
+		Year:             year,
+		TotalEntitlement: 14, // Default for first 2 years
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	if err := tx.Create(&annualBalance).Error; err != nil {
+		return err
+	}
+
+	if err := tx.Create(&sickBalance).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (s *UserService) UpdateLeaveBalance(userID uuid.UUID, year int, leaveType models.LeaveType, quota float64) error {
-	// Implementation stub
-	return nil
+func (us *UserService) ChangePassword(userID uuid.UUID, currentPassword, newPassword string) error {
+	return us.db.Transaction(func(tx *gorm.DB) error {
+		var user models.User
+		if err := tx.First(&user, "id = ?", userID).Error; err != nil {
+			return err
+		}
+
+		// Verify current password
+		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
+			return errors.New("current password is incorrect")
+		}
+
+		// Hash new password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+
+		// Update password
+		user.PasswordHash = string(hashedPassword)
+		user.UpdatedAt = time.Now()
+
+		return tx.Save(&user).Error
+	})
+}
+
+func (us *UserService) UpdateProbationStatus(userID uuid.UUID, isConfirmed bool, notes string) error {
+	return us.db.Transaction(func(tx *gorm.DB) error {
+		var user models.User
+		if err := tx.First(&user, "id = ?", userID).Error; err != nil {
+			return err
+		}
+
+		user.IsConfirmed = isConfirmed
+		user.UpdatedAt = time.Now()
+
+		if isConfirmed && user.ProbationEndDate == nil {
+			now := time.Now()
+			user.ProbationEndDate = &now
+		}
+
+		return tx.Save(&user).Error
+	})
+}
+
+func (us *UserService) GetTeamMembers(managerID uuid.UUID) ([]models.User, error) {
+	var users []models.User
+	err := us.db.Where("manager_id = ?", managerID).Find(&users).Error
+	return users, err
+}
+
+func (us *UserService) UpdateUser(user *models.User) error {
+	user.UpdatedAt = time.Now()
+	return us.db.Save(user).Error
 }

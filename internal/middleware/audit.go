@@ -46,9 +46,21 @@ func (m *AuditMiddleware) AuditLog() gin.HandlerFunc {
 		duration := time.Since(startTime)
 
 		// Get user info if authenticated
-		userID, _ := c.Get("user_id")
-		userEmail, _ := c.Get("user_email")
-		userRole, _ := c.Get("user_role")
+		var (
+			uid   uuid.UUID
+			email string
+			role  models.UserRole
+		)
+
+		if val, ok := c.Get("user_id"); ok {
+			uid = val.(uuid.UUID)
+		}
+		if val, ok := c.Get("user_email"); ok {
+			email = val.(string)
+		}
+		if val, ok := c.Get("user_role"); ok {
+			role = val.(models.UserRole)
+		}
 
 		// Log audit trail
 		m.auditLogger.LogHTTP(
@@ -58,9 +70,9 @@ func (m *AuditMiddleware) AuditLog() gin.HandlerFunc {
 			duration,
 			c.ClientIP(),
 			c.Request.UserAgent(),
-			userID.(uuid.UUID),
-			userEmail.(string),
-			userRole.(models.UserRole),
+			uid,
+			email,
+			role,
 			string(requestBody),
 			blw.body.String(),
 		)
