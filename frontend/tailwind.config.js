@@ -8,12 +8,17 @@ export default {
         extend: {
             colors: {
                 brand: {
-                    50: '#f0f9ff',
-                    100: '#e0f2fe',
-                    200: '#bao9e1', // Placeholder, refining... let's use a nice Indigo/Violet
+                    50: '#eef2ff',
+                    100: '#e0e7ff',
+                    200: '#c7d2fe',
+                    300: '#a5b4fc',
+                    400: '#818cf8',
                     500: '#6366f1', // Indigo 500
                     600: '#4f46e5',
                     700: '#4338ca',
+                    800: '#3730a3',
+                    900: '#312e81',
+                    950: '#1e1b4b',
                 },
                 // Glassmorphism colors
                 glass: {
