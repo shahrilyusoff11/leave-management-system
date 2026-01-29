@@ -14,6 +14,7 @@ const UserManagement: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [editUser, setEditUser] = useState<User | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
     const fetchUsers = async () => {
@@ -116,7 +117,12 @@ const UserManagement: React.FC = () => {
                                             {format(new Date(user.joined_date), 'MMM d, yyyy')}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-8 w-8 p-0"
+                                                onClick={() => setEditUser(user)}
+                                            >
                                                 <MoreVertical className="h-4 w-4 text-slate-400" />
                                             </Button>
                                         </td>
@@ -133,6 +139,15 @@ const UserManagement: React.FC = () => {
                 onClose={() => setIsCreateModalOpen(false)}
                 onSuccess={fetchUsers}
             />
+
+            {editUser && (
+                <EditUserModal
+                    user={editUser}
+                    isOpen={!!editUser}
+                    onClose={() => setEditUser(null)}
+                    onSuccess={fetchUsers}
+                />
+            )}
         </div>
     );
 };
@@ -218,6 +233,154 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean, onCl
                     <Button type="submit" isLoading={isSubmitting}>Create User</Button>
                 </div>
             </form>
+        </Modal>
+    );
+};
+
+const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpen: boolean, onClose: () => void, onSuccess: () => void }) => {
+    const [activeTab, setActiveTab] = useState<'details' | 'probation' | 'balance'>('details');
+    const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
+
+    const probationForm = useForm();
+    const balanceForm = useForm();
+
+    const handleConfirmProbation = async (data: any) => {
+        setError('');
+        setMessage('');
+        try {
+            await api.put(`/hr/users/${user.id}/probation`, {
+                is_confirmed: true,
+                notes: data.notes
+            });
+            setMessage('Probation confirmed successfully');
+            onSuccess();
+        } catch (err: any) {
+            setError(err.response?.data?.error || "Failed to update probation");
+        }
+    };
+
+    const handleUpdateBalance = async (data: any) => {
+        setError('');
+        setMessage('');
+        try {
+            await api.put(`/hr/users/${user.id}/leave-balance`, {
+                leave_type: data.leave_type,
+                year: parseInt(data.year),
+                total_entitlement: parseFloat(data.total_entitlement),
+                adjustment: parseFloat(data.adjustment || 0),
+                reason: data.reason
+            });
+            setMessage('Leave balance updated successfully');
+            balanceForm.reset();
+            onSuccess();
+        } catch (err: any) {
+            setError(err.response?.data?.error || "Failed to update balance");
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title={`Edit User: ${user.first_name} ${user.last_name}`}>
+            <div className="space-y-4">
+                <div className="flex border-b border-slate-200">
+                    <button
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'details' ? 'border-brand-500 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveTab('details')}
+                    >
+                        Details
+                    </button>
+                    <button
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'probation' ? 'border-brand-500 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveTab('probation')}
+                    >
+                        Probation
+                    </button>
+                    <button
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'balance' ? 'border-brand-500 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveTab('balance')}
+                    >
+                        Leave Balance
+                    </button>
+                </div>
+
+                {message && <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm">{message}</div>}
+                {error && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
+
+                {activeTab === 'details' && (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <label className="block text-slate-500">Email</label>
+                                <div className="font-medium text-slate-900">{user.email}</div>
+                            </div>
+                            <div>
+                                <label className="block text-slate-500">Role</label>
+                                <div className="font-medium text-slate-900">{user.role}</div>
+                            </div>
+                            <div>
+                                <label className="block text-slate-500">Department</label>
+                                <div className="font-medium text-slate-900">{user.department}</div>
+                            </div>
+                            <div>
+                                <label className="block text-slate-500">Joined Date</label>
+                                <div className="font-medium text-slate-900">{format(new Date(user.joined_date), 'MMM d, yyyy')}</div>
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-400 italic">Full profile editing is not yet enabled.</p>
+                    </div>
+                )}
+
+                {activeTab === 'probation' && (
+                    <form onSubmit={probationForm.handleSubmit(handleConfirmProbation)} className="space-y-4">
+                        <p className="text-sm text-slate-600">Confirm successful completion of probation period.</p>
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-slate-700">Notes (Optional)</label>
+                            <Input {...probationForm.register('notes')} placeholder="Performance review notes..." />
+                        </div>
+                        <Button type="submit" isLoading={probationForm.formState.isSubmitting}>Confirm Probation</Button>
+                    </form>
+                )}
+
+                {activeTab === 'balance' && (
+                    <form onSubmit={balanceForm.handleSubmit(handleUpdateBalance)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Leave Type</label>
+                                <select
+                                    className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                                    {...balanceForm.register('leave_type', { required: true })}
+                                >
+                                    <option value="annual">Annual</option>
+                                    <option value="sick">Sick</option>
+                                    <option value="compassionate">Compassionate</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Year</label>
+                                <Input type="number" {...balanceForm.register('year', { required: true })} defaultValue={new Date().getFullYear()} />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Total Entitlement</label>
+                                <Input type="number" step="0.5" {...balanceForm.register('total_entitlement', { required: true })} placeholder="e.g. 14" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Manual Adjustment</label>
+                                <Input type="number" step="0.5" {...balanceForm.register('adjustment')} placeholder="e.g. +1 or -1" />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-slate-700">Reason</label>
+                            <Input {...balanceForm.register('reason', { required: true })} placeholder="Reason for change..." />
+                        </div>
+
+                        <Button type="submit" isLoading={balanceForm.formState.isSubmitting}>Update Balance</Button>
+                    </form>
+                )}
+            </div>
         </Modal>
     );
 };

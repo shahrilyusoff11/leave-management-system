@@ -1,0 +1,174 @@
+import React, { useEffect, useState } from 'react';
+import { format } from 'date-fns';
+import { Filter } from 'lucide-react';
+import api from '../services/api';
+import type { LeaveRequest } from '../types';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { Input } from '../components/ui/Input';
+
+const HRLeaves: React.FC = () => {
+    const [requests, setRequests] = useState<LeaveRequest[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [deptFilter, setDeptFilter] = useState('');
+    const [yearFilter, setYearFilter] = useState(new Date().getFullYear().toString());
+
+    const fetchRequests = async () => {
+        setLoading(true);
+        try {
+            // Build query params
+            const params = new URLSearchParams();
+            if (statusFilter !== 'all') params.append('status', statusFilter);
+            if (deptFilter) params.append('department', deptFilter);
+            if (yearFilter) params.append('year', yearFilter);
+
+            const response = await api.get(`/hr/leave-requests?${params.toString()}`);
+            if (Array.isArray(response.data)) {
+                setRequests(response.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch HR leave requests", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRequests();
+    }, [statusFilter, yearFilter]); // Trigger on simple filters directly
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        fetchRequests();
+    };
+
+    const getStatusVariant = (status: string) => {
+        switch (status) {
+            case 'approved': return 'success';
+            case 'rejected': return 'danger';
+            case 'pending': return 'warning';
+            case 'cancelled': return 'secondary';
+            default: return 'default';
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">All Leave Requests</h1>
+                    <p className="text-slate-500 mt-1">Global view of all employee leave requests</p>
+                </div>
+            </div>
+
+            <Card className="p-4">
+                <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-4">
+                    <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">Status</label>
+                        <div className="relative">
+                            <select
+                                className="w-full appearance-none pl-9 pr-8 h-10 border border-slate-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="all">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                            <Filter className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">Department</label>
+                        <Input
+                            placeholder="e.g. Engineering"
+                            value={deptFilter}
+                            onChange={(e) => setDeptFilter(e.target.value)}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">Year</label>
+                        <Input
+                            type="number"
+                            value={yearFilter}
+                            onChange={(e) => setYearFilter(e.target.value)}
+                        />
+                    </div>
+
+                    <div>
+                        <button type="submit" className="w-full h-10 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">
+                            Apply Filters
+                        </button>
+                    </div>
+                </form>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-6 py-4 font-semibold text-slate-600">Employee</th>
+                                <th className="px-6 py-4 font-semibold text-slate-600">Type</th>
+                                <th className="px-6 py-4 font-semibold text-slate-600">Dates</th>
+                                <th className="px-6 py-4 font-semibold text-slate-600">Days</th>
+                                <th className="px-6 py-4 font-semibold text-slate-600">Status</th>
+                                <th className="px-6 py-4 font-semibold text-slate-600">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                        Loading requests...
+                                    </td>
+                                </tr>
+                            ) : requests.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                        No requests found matching criteria
+                                    </td>
+                                </tr>
+                            ) : (
+                                requests.map((req) => (
+                                    <tr key={req.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="font-medium text-slate-900">{req.user?.first_name} {req.user?.last_name}</p>
+                                                <p className="text-xs text-slate-500">{req.user?.email}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 capitalize text-slate-700">
+                                            {req.leave_type}
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
+                                            <div className="flex flex-col">
+                                                <span>{format(new Date(req.start_date), 'MMM d')} - {format(new Date(req.end_date), 'MMM d, yyyy')}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-600">
+                                            {req.duration_days}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <Badge variant={getStatusVariant(req.status)}>
+                                                {req.status}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={req.reason}>
+                                            {req.reason}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </Card>
+        </div>
+    );
+};
+
+export default HRLeaves;

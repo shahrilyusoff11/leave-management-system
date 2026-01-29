@@ -10,6 +10,8 @@ import UserManagement from './pages/UserManagement';
 import AuditLogs from './pages/AuditLogs';
 import Reports from './pages/Reports';
 import HolidayManagement from './pages/HolidayManagement';
+import Profile from './pages/Profile';
+import HRLeaves from './pages/HRLeaves';
 
 function App() {
   return (
@@ -21,9 +23,11 @@ function App() {
           <Route element={<DashboardLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/request-leave" element={<RequestLeave />} />
             <Route path="/my-leaves" element={<MyLeaves />} />
             <Route path="/team-leaves" element={<TeamLeaves />} />
+            <Route path="/hr/leaves" element={<HRLeaves />} />
             <Route path="/users" element={<UserManagement />} />
             <Route path="/audit-logs" element={<AuditLogs />} />
             <Route path="/reports" element={<Reports />} />
