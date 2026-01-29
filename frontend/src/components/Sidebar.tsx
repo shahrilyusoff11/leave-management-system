@@ -104,7 +104,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
                         {/* Admin only */}
                         {(user?.role === 'admin' || user?.role === 'sysadmin') && (
-                            <NavItem to="/audit-logs" icon={ShieldCheck}>Audit Logs</NavItem>
+                            <>
+                                <NavItem to="/holidays" icon={CalendarDays}>Holidays</NavItem>
+                                <NavItem to="/audit-logs" icon={ShieldCheck}>Audit Logs</NavItem>
+                            </>
                         )}
                     </nav>
 

@@ -9,6 +9,7 @@ import TeamLeaves from './pages/TeamLeaves';
 import UserManagement from './pages/UserManagement';
 import AuditLogs from './pages/AuditLogs';
 import Reports from './pages/Reports';
+import HolidayManagement from './pages/HolidayManagement';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             <Route path="/users" element={<UserManagement />} />
             <Route path="/audit-logs" element={<AuditLogs />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/holidays" element={<HolidayManagement />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

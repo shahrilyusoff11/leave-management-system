@@ -5,9 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import type { LeaveBalance, LeaveRequest } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Link } from 'react-router-dom';
-import { cn } from '../utils/cn';
 
 const Dashboard: React.FC = () => {
     const { user } = useAuth();
@@ -38,10 +38,10 @@ const Dashboard: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'approved': return 'text-green-600 bg-green-50 border-green-200';
-            case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
-            case 'pending': return 'text-amber-600 bg-amber-50 border-amber-200';
-            default: return 'text-slate-600 bg-slate-50 border-slate-200';
+            case 'approved': return 'success';
+            case 'rejected': return 'danger';
+            case 'pending': return 'warning';
+            default: return 'default';
         }
     };
 
@@ -183,12 +183,9 @@ const Dashboard: React.FC = () => {
                                                 {req.duration_days} days
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={cn(
-                                                    "px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
-                                                    getStatusColor(req.status)
-                                                )}>
+                                                <Badge variant={getStatusColor(req.status) as any}>
                                                     {req.status}
-                                                </span>
+                                                </Badge>
                                             </td>
                                             <td className="px-6 py-4 text-slate-400 text-xs">
                                                 {new Date(req.created_at).toLocaleDateString()}
