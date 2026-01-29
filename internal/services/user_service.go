@@ -51,12 +51,14 @@ func (us *UserService) GetAllUsers() ([]models.User, error) {
 }
 
 func (us *UserService) CreateUser(user *models.User) error {
-	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("Default@123"), bcrypt.DefaultCost)
-	if err != nil {
-		return err
+	// Only set default password if no password hash was provided
+	if user.PasswordHash == "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("Default@123"), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		user.PasswordHash = string(hashedPassword)
 	}
-	user.PasswordHash = string(hashedPassword)
 
 	// Set default values
 	if user.JoinedDate.IsZero() {
