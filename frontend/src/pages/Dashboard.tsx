@@ -23,8 +23,22 @@ const Dashboard: React.FC = () => {
                     api.get('/leave-requests')
                 ]);
 
-                // Ensure we get arrays
-                setBalances(Array.isArray(balanceRes.data) ? balanceRes.data : []);
+                // Handle balance response - can be object keyed by leave type or array
+                const balanceData = balanceRes.data;
+                if (balanceData && typeof balanceData === 'object' && !Array.isArray(balanceData)) {
+                    // Convert object format to array format
+                    const balanceArray = Object.entries(balanceData).map(([leaveType, data]: [string, any]) => ({
+                        leave_type: leaveType,
+                        total_entitlement: data.total_entitlement || 0,
+                        used: data.used || 0,
+                        carried_forward: data.carried_forward || 0,
+                        adjusted: data.adjusted || 0,
+                        available: data.available || 0,
+                    })) as unknown as LeaveBalance[];
+                    setBalances(balanceArray);
+                } else {
+                    setBalances(Array.isArray(balanceData) ? balanceData : []);
+                }
                 setRecentRequests(Array.isArray(requestsRes.data) ? requestsRes.data.slice(0, 5) : []);
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
@@ -56,7 +70,9 @@ const Dashboard: React.FC = () => {
 
     const getRemaining = (b?: LeaveBalance) => {
         if (!b) return 0;
-        return b.total_entitlement - b.used + b.carried_forward + (b as any).adjusted || 0;
+        // Use available if already calculated, otherwise calculate
+        if ((b as any).available !== undefined) return (b as any).available;
+        return b.total_entitlement - b.used + b.carried_forward + ((b as any).adjusted || 0);
     };
 
     return (

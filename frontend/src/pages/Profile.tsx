@@ -41,7 +41,7 @@ const Profile: React.FC = () => {
 
         try {
             await api.put('/change-password', {
-                old_password: data.old_password,
+                current_password: data.old_password,
                 new_password: data.new_password
             });
             setMessage("Password changed successfully");

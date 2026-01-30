@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"leave-management-system/internal/models"
+	"leave-management-system/internal/services"
 
 	"gorm.io/gorm"
 )
@@ -21,6 +22,7 @@ func Migrate(db *gorm.DB) error {
 		&models.Chronology{},
 		&models.PublicHoliday{},
 		&models.AuditLog{},
+		&services.SystemConfig{},
 	)
 
 	if err != nil {

@@ -6,9 +6,10 @@ import (
 	"leave-management-system/internal/models"
 	"time"
 
+	"leave-management-system/pkg/logger"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"leave-management-system/pkg/logger"
 )
 
 type LeaveService struct {
@@ -293,21 +294,21 @@ func (ls *LeaveService) ProcessYearEndCarryForward() error {
 
 func (ls *LeaveService) GetUserLeaveRequests(userID uuid.UUID, status, year, leaveType string) ([]models.LeaveRequest, error) {
 	var requests []models.LeaveRequest
-	
+
 	query := ls.db.Preload("User").Preload("Approver").Where("user_id = ?", userID)
-	
+
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
-	
+
 	if year != "" {
 		query = query.Where("EXTRACT(YEAR FROM start_date) = ?", year)
 	}
-	
+
 	if leaveType != "" {
 		query = query.Where("leave_type = ?", leaveType)
 	}
-	
+
 	err := query.Order("created_at DESC").Find(&requests).Error
 	return requests, err
 }
@@ -350,7 +351,7 @@ func (ls *LeaveService) CancelLeaveRequest(requestID, userID uuid.UUID) error {
 		if err := tx.Save(&request).Error; err != nil {
 			return err
 		}
-		
+
 		return tx.Create(&chronology).Error
 	})
 }
@@ -388,39 +389,39 @@ func (ls *LeaveService) RejectLeave(requestID, approverID uuid.UUID, comment str
 		if err := tx.Save(&request).Error; err != nil {
 			return err
 		}
-		
+
 		return tx.Create(&chronology).Error
 	})
 }
 
 func (ls *LeaveService) GetTeamLeaveRequests(managerID uuid.UUID, status, year string) ([]models.LeaveRequest, error) {
 	var requests []models.LeaveRequest
-	
+
 	query := ls.db.Preload("User").
 		Preload("Approver").
 		Joins("JOIN users ON users.id = leave_requests.user_id").
 		Where("users.manager_id = ?", managerID)
-	
+
 	if status != "" {
 		query = query.Where("leave_requests.status = ?", status)
 	}
-	
+
 	if year != "" {
 		query = query.Where("EXTRACT(YEAR FROM leave_requests.start_date) = ?", year)
 	}
-	
+
 	err := query.Order("leave_requests.created_at DESC").Find(&requests).Error
 	return requests, err
 }
 
 func (ls *LeaveService) GetUserLeaveBalance(userID uuid.UUID, year string) (map[string]interface{}, error) {
 	var balances []models.LeaveBalance
-	
+
 	query := ls.db.Where("user_id = ?", userID)
 	if year != "" {
 		query = query.Where("year = ?", year)
 	}
-	
+
 	err := query.Find(&balances).Error
 	if err != nil {
 		return nil, err
@@ -432,11 +433,11 @@ func (ls *LeaveService) GetUserLeaveBalance(userID uuid.UUID, year string) (map[
 		available := balance.TotalEntitlement + balance.CarriedForward + balance.Adjusted - balance.Used
 		result[string(balance.LeaveType)] = map[string]interface{}{
 			"total_entitlement": balance.TotalEntitlement,
-			"used":             balance.Used,
-			"carried_forward":  balance.CarriedForward,
-			"adjusted":         balance.Adjusted,
-			"available":        available,
-			"is_overridden":    balance.IsOverridden,
+			"used":              balance.Used,
+			"carried_forward":   balance.CarriedForward,
+			"adjusted":          balance.Adjusted,
+			"available":         available,
+			"is_overridden":     balance.IsOverridden,
 		}
 	}
 
@@ -445,47 +446,47 @@ func (ls *LeaveService) GetUserLeaveBalance(userID uuid.UUID, year string) (map[
 
 func (ls *LeaveService) GetAllLeaveRequests(status, year, department string) ([]models.LeaveRequest, error) {
 	var requests []models.LeaveRequest
-	
+
 	query := ls.db.Preload("User").Preload("Approver")
-	
+
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
-	
+
 	if year != "" {
 		query = query.Where("EXTRACT(YEAR FROM start_date) = ?", year)
 	}
-	
+
 	if department != "" {
 		query = query.Joins("JOIN users ON users.id = leave_requests.user_id").
 			Where("users.department = ?", department)
 	}
-	
+
 	err := query.Order("created_at DESC").Find(&requests).Error
 	return requests, err
 }
 
-func (ls *LeaveService) UpdateLeaveBalance(userID uuid.UUID, leaveType models.LeaveType, year int, 
+func (ls *LeaveService) UpdateLeaveBalance(userID uuid.UUID, leaveType models.LeaveType, year int,
 	totalEntitlement, adjustment float64, reason string) (*models.LeaveBalance, error) {
-	
+
 	var balance models.LeaveBalance
-	
+
 	err := ls.db.Transaction(func(tx *gorm.DB) error {
 		// Find or create balance
-		err := tx.Where("user_id = ? AND year = ? AND leave_type = ?", 
+		err := tx.Where("user_id = ? AND year = ? AND leave_type = ?",
 			userID, year, leaveType).First(&balance).Error
-		
+
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			balance = models.LeaveBalance{
-				ID:              uuid.New(),
-				UserID:          userID,
-				LeaveType:       leaveType,
-				Year:            year,
+				ID:               uuid.New(),
+				UserID:           userID,
+				LeaveType:        leaveType,
+				Year:             year,
 				TotalEntitlement: totalEntitlement,
-				Adjusted:        adjustment,
-				IsOverridden:    true,
-				CreatedAt:       time.Now(),
-				UpdatedAt:       time.Now(),
+				Adjusted:         adjustment,
+				IsOverridden:     true,
+				CreatedAt:        time.Now(),
+				UpdatedAt:        time.Now(),
 			}
 			return tx.Create(&balance).Error
 		} else if err != nil {
@@ -505,19 +506,69 @@ func (ls *LeaveService) UpdateLeaveBalance(userID uuid.UUID, leaveType models.Le
 }
 
 func (ls *LeaveService) GeneratePayrollReport(month, year string) ([]byte, error) {
-	// This would generate CSV report
-	// Implementation depends on specific payroll requirements
-	return []byte("Payroll report would be generated here"), nil
+	// Get all users
+	var users []models.User
+	if err := ls.db.Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	// Build CSV header
+	csv := "Employee ID,Email,First Name,Last Name,Department,Position,"
+	csv += "Annual Leave Used,Sick Leave Used,Unpaid Leave Days,Total Leave Days\n"
+
+	for _, user := range users {
+		// Get leave requests for the month
+		var requests []models.LeaveRequest
+		query := ls.db.Where("user_id = ? AND status = ?", user.ID, models.StatusApproved)
+
+		if month != "" && year != "" {
+			query = query.Where("EXTRACT(MONTH FROM start_date) = ? AND EXTRACT(YEAR FROM start_date) = ?", month, year)
+		}
+
+		if err := query.Find(&requests).Error; err != nil {
+			continue
+		}
+
+		// Calculate leave by type
+		var annualUsed, sickUsed, unpaidUsed, totalDays float64
+		for _, req := range requests {
+			switch req.LeaveType {
+			case models.LeaveTypeAnnual:
+				annualUsed += req.DurationDays
+			case models.LeaveTypeSick:
+				sickUsed += req.DurationDays
+			case models.LeaveTypeUnpaid:
+				unpaidUsed += req.DurationDays
+			}
+			totalDays += req.DurationDays
+		}
+
+		// Add row to CSV
+		csv += fmt.Sprintf("%s,%s,%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f\n",
+			user.ID.String(),
+			user.Email,
+			user.FirstName,
+			user.LastName,
+			user.Department,
+			user.Position,
+			annualUsed,
+			sickUsed,
+			unpaidUsed,
+			totalDays,
+		)
+	}
+
+	return []byte(csv), nil
 }
 
 func (ls *LeaveService) GetPendingRequestsOlderThan(date time.Time) ([]models.LeaveRequest, error) {
 	var requests []models.LeaveRequest
-	
+
 	err := ls.db.Preload("User").
 		Preload("User.Manager").
 		Where("status = ? AND created_at < ?", models.StatusPending, date).
 		Find(&requests).Error
-	
+
 	return requests, err
 }
 
@@ -550,7 +601,7 @@ func (ls *LeaveService) EscalateRequest(requestID uuid.UUID) error {
 		if err := tx.Save(&request).Error; err != nil {
 			return err
 		}
-		
+
 		return tx.Create(&chronology).Error
 	})
 }

@@ -27,8 +27,13 @@ const AuditLogs: React.FC = () => {
         setLoading(true);
         try {
             const response = await api.get('/admin/audit-logs');
-            if (Array.isArray(response.data)) {
+            // Handle response format: { logs: [], total, page, limit }
+            if (response.data && response.data.logs) {
+                setLogs(response.data.logs);
+            } else if (Array.isArray(response.data)) {
                 setLogs(response.data);
+            } else {
+                setLogs([]);
             }
         } catch (error) {
             console.error("Failed to fetch audit logs", error);

@@ -63,8 +63,8 @@ func main() {
 	leaveCalculator := services.NewLeaveCalculator(holidayService)
 	leaveService := services.NewLeaveService(db.DB, leaveCalculator, auditLogger, holidayService)
 	userService := services.NewUserService(db.DB, auditLogger)
-	configService := &services.ConfigService{} // Initialize config service
-	auditService := services.NewAuditService() // Initialize audit service
+	configService := services.NewConfigService(db.DB) // Initialize config service with DB
+	auditService := services.NewAuditService(db.DB)   // Initialize audit service with DB
 
 	emailService := services.NewEmailService(
 		cfg.Email.Host,
@@ -152,6 +152,8 @@ func main() {
 			hr.GET("/users", hrHandler.GetAllUsers)
 			hr.GET("/users/:id", hrHandler.GetUser)
 			hr.POST("/users", hrHandler.CreateUser)
+			hr.PUT("/users/:id", hrHandler.UpdateUser)
+			hr.PUT("/users/:id/status", hrHandler.ToggleUserActive)
 			hr.PUT("/users/:id/probation", hrHandler.ConfirmProbation)
 			hr.PUT("/users/:id/leave-balance", hrHandler.UpdateLeaveBalance)
 			hr.GET("/leave-requests", hrHandler.GetLeaveRequests)

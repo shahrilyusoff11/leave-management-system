@@ -209,3 +209,107 @@ func (h *HRHandler) ConfirmProbation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Probation status updated"})
 }
+
+type UpdateUserRequest struct {
+	FirstName  string          `json:"first_name"`
+	LastName   string          `json:"last_name"`
+	Role       models.UserRole `json:"role"`
+	Department string          `json:"department"`
+	Position   string          `json:"position"`
+	ManagerID  *uuid.UUID      `json:"manager_id"`
+}
+
+func (h *HRHandler) UpdateUser(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get existing user
+	user, err := h.userService.GetUser(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Validate role permissions
+	currentRole := c.MustGet("user_role").(models.UserRole)
+	if currentRole == models.RoleHR &&
+		(req.Role == models.RoleSysAdmin || req.Role == models.RoleAdmin) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot assign admin roles"})
+		return
+	}
+
+	// Update fields
+	if req.FirstName != "" {
+		user.FirstName = req.FirstName
+	}
+	if req.LastName != "" {
+		user.LastName = req.LastName
+	}
+	if req.Role != "" {
+		user.Role = req.Role
+	}
+	if req.Department != "" {
+		user.Department = req.Department
+	}
+	if req.Position != "" {
+		user.Position = req.Position
+	}
+	if req.ManagerID != nil {
+		user.ManagerID = req.ManagerID
+	}
+
+	if err := h.userService.UpdateUser(user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+type ToggleUserActiveRequest struct {
+	IsActive bool `json:"is_active"`
+}
+
+func (h *HRHandler) ToggleUserActive(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req ToggleUserActiveRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get existing user
+	user, err := h.userService.GetUser(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	user.IsActive = req.IsActive
+
+	if err := h.userService.UpdateUser(user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	status := "activated"
+	if !req.IsActive {
+		status = "deactivated"
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User " + status + " successfully"})
+}
