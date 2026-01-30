@@ -9,13 +9,12 @@ import { Input } from '../components/ui/Input';
 interface AuditLog {
     id: string;
     method: string;
-    path: string;
-    status_code: number;
-    duration: number;
-    user_email: string;
-    user_role: string;
-    timestamp: string;
-    client_ip: string;
+    endpoint: string;
+    action: string;
+    actor_email: string;
+    actor_role: string;
+    created_at: string;
+    ip_address: string;
 }
 
 const AuditLogs: React.FC = () => {
@@ -46,13 +45,6 @@ const AuditLogs: React.FC = () => {
         fetchLogs();
     }, []);
 
-    const getStatusVariant = (code: number) => {
-        if (code >= 200 && code < 300) return 'success';
-        if (code >= 300 && code < 400) return 'warning';
-        if (code >= 400) return 'danger';
-        return 'default';
-    };
-
     const getMethodVariant = (method: string) => {
         switch (method) {
             case 'GET': return 'primary';
@@ -64,8 +56,8 @@ const AuditLogs: React.FC = () => {
     };
 
     const filteredLogs = logs.filter(log =>
-        log.path.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.user_email.toLowerCase().includes(searchQuery.toLowerCase())
+        (log.endpoint || log.action || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (log.actor_email || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -96,53 +88,52 @@ const AuditLogs: React.FC = () => {
                             <tr className="bg-slate-50 border-b border-slate-200">
                                 <th className="px-6 py-4 font-semibold text-slate-600">Time</th>
                                 <th className="px-6 py-4 font-semibold text-slate-600">User</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Method</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Path</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Status</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Duration</th>
+                                <th className="px-6 py-4 font-semibold text-slate-600">Role</th>
+                                <th className="px-6 py-4 font-semibold text-slate-600">Action</th>
                                 <th className="px-6 py-4 font-semibold text-slate-600">IP Address</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
                                         Loading logs...
                                     </td>
                                 </tr>
                             ) : filteredLogs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                                        No logs found
+                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                        No logs found. Try performing some actions first (navigate around, submit leave, etc.)
                                     </td>
                                 </tr>
                             ) : (
                                 filteredLogs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-slate-50 transition-colors font-mono text-xs">
-                                        <td className="px-6 py-4 whitespace-nowrap text-slate-600">
-                                            {format(new Date(log.timestamp), 'MMM d, HH:mm:ss')}
+                                    <tr key={log.id} className="hover:bg-slate-50 transition-colors text-xs">
+                                        <td className="px-6 py-4 whitespace-nowrap text-slate-600 font-mono">
+                                            {format(new Date(log.created_at), 'MMM d, HH:mm:ss')}
                                         </td>
                                         <td className="px-6 py-4 text-slate-900 font-medium">
-                                            {log.user_email}
+                                            {log.actor_email || 'System'}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <Badge variant={getMethodVariant(log.method) as any}>
-                                                {log.method}
+                                            <Badge variant="secondary" className="capitalize">
+                                                {log.actor_role || 'N/A'}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600 truncate max-w-xs" title={log.path}>
-                                            {log.path}
+                                        <td className="px-6 py-4 text-slate-600">
+                                            <div className="flex items-center gap-2">
+                                                {log.method && (
+                                                    <Badge variant={getMethodVariant(log.method) as any} className="text-[10px]">
+                                                        {log.method}
+                                                    </Badge>
+                                                )}
+                                                <span className="truncate max-w-xs font-mono" title={log.action}>
+                                                    {log.endpoint || log.action}
+                                                </span>
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <Badge variant={getStatusVariant(log.status_code) as any}>
-                                                {log.status_code}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-500">
-                                            {(log.duration / 1000000).toFixed(2)}ms
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-500">
-                                            {log.client_ip}
+                                        <td className="px-6 py-4 text-slate-500 font-mono">
+                                            {log.ip_address || '-'}
                                         </td>
                                     </tr>
                                 ))
@@ -156,3 +147,4 @@ const AuditLogs: React.FC = () => {
 };
 
 export default AuditLogs;
+

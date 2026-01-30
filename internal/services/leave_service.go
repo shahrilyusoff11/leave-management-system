@@ -141,6 +141,22 @@ func (ls *LeaveService) ApproveLeave(requestID, approverID uuid.UUID, comment st
 			request.LeaveType == models.LeaveTypeEmergency ||
 			request.LeaveType == models.LeaveTypeSick {
 
+			// Recalculate duration if it's 0 (legacy records)
+			durationToDeduct := request.DurationDays
+			if durationToDeduct <= 0 {
+				// Recalculate working days
+				calculatedDays, err := ls.calculator.CalculateWorkingDays(request.StartDate, request.EndDate, request.LeaveType)
+				if err == nil && calculatedDays > 0 {
+					durationToDeduct = calculatedDays
+					// Also update the request record
+					request.DurationDays = durationToDeduct
+				} else {
+					// Fallback: at least 1 day for same-day leave
+					durationToDeduct = 1
+					request.DurationDays = 1
+				}
+			}
+
 			var balance models.LeaveBalance
 			err := tx.Where("user_id = ? AND year = ? AND leave_type = ?",
 				request.UserID, request.StartDate.Year(), request.LeaveType).
@@ -150,8 +166,8 @@ func (ls *LeaveService) ApproveLeave(requestID, approverID uuid.UUID, comment st
 				return err
 			}
 
-			// Update balance
-			balance.Used += request.DurationDays
+			// Update balance with recalculated duration
+			balance.Used += durationToDeduct
 			balance.UpdatedAt = time.Now()
 
 			if err := tx.Save(&balance).Error; err != nil {

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Link } from 'react-router-dom';
+import { getDisplayDuration, formatDuration } from '../utils/duration';
 
 const Dashboard: React.FC = () => {
     const { user } = useAuth();
@@ -196,7 +197,7 @@ const Dashboard: React.FC = () => {
                                                 {new Date(req.start_date).toLocaleDateString()} - {new Date(req.end_date).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4 text-slate-600">
-                                                {req.duration_days} days
+                                                {formatDuration(getDisplayDuration(req.duration_days, req.start_date, req.end_date))}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <Badge variant={getStatusColor(req.status) as any}>

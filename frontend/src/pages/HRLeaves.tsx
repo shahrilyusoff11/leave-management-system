@@ -6,6 +6,7 @@ import type { LeaveRequest } from '../types';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
+import { getDisplayDuration, formatDuration } from '../utils/duration';
 
 const HRLeaves: React.FC = () => {
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
@@ -150,7 +151,7 @@ const HRLeaves: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-slate-600">
-                                            {req.duration_days}
+                                            {formatDuration(getDisplayDuration(req.duration_days, req.start_date, req.end_date))}
                                         </td>
                                         <td className="px-6 py-4">
                                             <Badge variant={getStatusVariant(req.status)}>

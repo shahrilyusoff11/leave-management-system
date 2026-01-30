@@ -6,6 +6,7 @@ import type { LeaveRequest } from '../types';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { getDisplayDuration, formatDuration } from '../utils/duration';
 
 const MyLeaves: React.FC = () => {
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
@@ -130,7 +131,7 @@ const MyLeaves: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-slate-600">
-                                            {req.duration_days} days
+                                            {formatDuration(getDisplayDuration(req.duration_days, req.start_date, req.end_date))}
                                         </td>
                                         <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={req.reason}>
                                             {req.reason}
