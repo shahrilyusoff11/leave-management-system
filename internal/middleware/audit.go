@@ -3,22 +3,26 @@ package middleware
 import (
 	"bytes"
 	"io"
+	"leave-management-system/internal/models"
+	"leave-management-system/internal/services"
 	"leave-management-system/pkg/logger"
 	"strings"
 	"time"
-
-	"leave-management-system/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type AuditMiddleware struct {
-	auditLogger *logger.AuditLogger
+	auditLogger  *logger.AuditLogger
+	auditService *services.AuditService
 }
 
-func NewAuditMiddleware(auditLogger *logger.AuditLogger) *AuditMiddleware {
-	return &AuditMiddleware{auditLogger: auditLogger}
+func NewAuditMiddleware(auditLogger *logger.AuditLogger, auditService *services.AuditService) *AuditMiddleware {
+	return &AuditMiddleware{
+		auditLogger:  auditLogger,
+		auditService: auditService,
+	}
 }
 
 func (m *AuditMiddleware) AuditLog() gin.HandlerFunc {
@@ -62,7 +66,7 @@ func (m *AuditMiddleware) AuditLog() gin.HandlerFunc {
 			role = val.(models.UserRole)
 		}
 
-		// Log audit trail
+		// Log audit trail to file
 		m.auditLogger.LogHTTP(
 			c.Request.Method,
 			c.Request.URL.Path,
@@ -76,6 +80,24 @@ func (m *AuditMiddleware) AuditLog() gin.HandlerFunc {
 			string(requestBody),
 			blw.body.String(),
 		)
+
+		// Save audit log to database (only for authenticated requests)
+		if uid != uuid.Nil && m.auditService != nil {
+			auditLog := &models.AuditLog{
+				ID:         uuid.New(),
+				ActorID:    uid,
+				ActorEmail: email,
+				ActorRole:  role,
+				Action:     c.Request.Method + " " + c.Request.URL.Path,
+				Method:     c.Request.Method,
+				Endpoint:   c.Request.URL.Path,
+				IPAddress:  c.ClientIP(),
+				UserAgent:  c.Request.UserAgent(),
+				CreatedAt:  time.Now(),
+			}
+			// Fire and forget - don't block request on audit log save
+			go m.auditService.CreateAuditLog(auditLog)
+		}
 	}
 }
 

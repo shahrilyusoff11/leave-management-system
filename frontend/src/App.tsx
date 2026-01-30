@@ -12,6 +12,7 @@ import Reports from './pages/Reports';
 import HolidayManagement from './pages/HolidayManagement';
 import Profile from './pages/Profile';
 import HRLeaves from './pages/HRLeaves';
+import SystemSettings from './pages/SystemSettings';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="/audit-logs" element={<AuditLogs />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/holidays" element={<HolidayManagement />} />
+            <Route path="/settings" element={<SystemSettings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -42,3 +44,4 @@ function App() {
 }
 
 export default App;
+

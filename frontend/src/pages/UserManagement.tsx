@@ -155,11 +155,36 @@ const UserManagement: React.FC = () => {
 const CreateUserModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) => {
     const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm();
     const [error, setError] = useState('');
+    const [managers, setManagers] = useState<User[]>([]);
+
+    useEffect(() => {
+        const fetchManagers = async () => {
+            try {
+                const response = await api.get('/hr/users');
+                if (Array.isArray(response.data)) {
+                    // Filter users who can be managers (manager, hr, admin roles)
+                    const potentialManagers = response.data.filter((u: User) =>
+                        ['manager', 'hr', 'admin', 'sysadmin'].includes(u.role)
+                    );
+                    setManagers(potentialManagers);
+                }
+            } catch (err) {
+                console.error("Failed to fetch managers", err);
+            }
+        };
+        if (isOpen) {
+            fetchManagers();
+        }
+    }, [isOpen]);
 
     const onSubmit = async (data: any) => {
         setError('');
         try {
-            await api.post('/hr/users', data);
+            const payload = {
+                ...data,
+                manager_id: data.manager_id || null
+            };
+            await api.post('/hr/users', payload);
             reset();
             onSuccess();
             onClose();
@@ -228,6 +253,22 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean, onCl
                     </div>
                 </div>
 
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-slate-700">Reporting Manager</label>
+                    <select
+                        className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                        {...register('manager_id')}
+                    >
+                        <option value="">No Manager (HR will approve leaves)</option>
+                        {managers.map(m => (
+                            <option key={m.id} value={m.id}>
+                                {m.first_name} {m.last_name} ({m.role})
+                            </option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-slate-400">Leave requests will be sent to this manager for approval</p>
+                </div>
+
                 <div className="flex justify-end gap-3 mt-6">
                     <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
                     <Button type="submit" isLoading={isSubmitting}>Create User</Button>
@@ -241,9 +282,74 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
     const [activeTab, setActiveTab] = useState<'details' | 'probation' | 'balance'>('details');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [isActive, setIsActive] = useState(user.is_active !== false);
+    const [managers, setManagers] = useState<User[]>([]);
 
+    useEffect(() => {
+        const fetchManagers = async () => {
+            try {
+                const response = await api.get('/hr/users');
+                if (Array.isArray(response.data)) {
+                    const potentialManagers = response.data.filter((u: User) =>
+                        ['manager', 'hr', 'admin', 'sysadmin'].includes(u.role) && u.id !== user.id
+                    );
+                    setManagers(potentialManagers);
+                }
+            } catch (err) {
+                console.error("Failed to fetch managers", err);
+            }
+        };
+        if (isOpen) {
+            fetchManagers();
+        }
+    }, [isOpen, user.id]);
+
+    const detailsForm = useForm({
+        defaultValues: {
+            first_name: user.first_name,
+            last_name: user.last_name,
+            role: user.role,
+            department: user.department || '',
+            position: user.position || '',
+            manager_id: (user as any).manager_id || '',
+        }
+    });
     const probationForm = useForm();
     const balanceForm = useForm();
+
+    const handleUpdateDetails = async (data: any) => {
+        setError('');
+        setMessage('');
+        try {
+            await api.put(`/hr/users/${user.id}`, {
+                first_name: data.first_name,
+                last_name: data.last_name,
+                role: data.role,
+                department: data.department,
+                position: data.position,
+                manager_id: data.manager_id || null,
+            });
+            setMessage('User details updated successfully');
+            onSuccess();
+        } catch (err: any) {
+            setError(err.response?.data?.error || "Failed to update user");
+        }
+    };
+
+    const handleToggleActive = async () => {
+        setError('');
+        setMessage('');
+        try {
+            await api.put(`/hr/users/${user.id}/status`, {
+                is_active: !isActive
+            });
+            setIsActive(!isActive);
+            setMessage(`User ${!isActive ? 'activated' : 'deactivated'} successfully`);
+            onSuccess();
+        } catch (err: any) {
+            setError(err.response?.data?.error || "Failed to update user status");
+        }
+    };
 
     const handleConfirmProbation = async (data: any) => {
         setError('');
@@ -307,27 +413,105 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
                 {error && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
 
                 {activeTab === 'details' && (
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <label className="block text-slate-500">Email</label>
-                                <div className="font-medium text-slate-900">{user.email}</div>
+                    <form onSubmit={detailsForm.handleSubmit(handleUpdateDetails)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">First Name</label>
+                                <input
+                                    {...detailsForm.register("first_name", { required: true })}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                                />
                             </div>
-                            <div>
-                                <label className="block text-slate-500">Role</label>
-                                <div className="font-medium text-slate-900">{user.role}</div>
-                            </div>
-                            <div>
-                                <label className="block text-slate-500">Department</label>
-                                <div className="font-medium text-slate-900">{user.department}</div>
-                            </div>
-                            <div>
-                                <label className="block text-slate-500">Joined Date</label>
-                                <div className="font-medium text-slate-900">{format(new Date(user.joined_date), 'MMM d, yyyy')}</div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Last Name</label>
+                                <input
+                                    {...detailsForm.register("last_name", { required: true })}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                                />
                             </div>
                         </div>
-                        <p className="text-xs text-slate-400 italic">Full profile editing is not yet enabled.</p>
-                    </div>
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-slate-700">Email</label>
+                            <input
+                                value={user.email}
+                                disabled
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-500"
+                            />
+                            <p className="text-xs text-slate-400">Email cannot be changed</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Role</label>
+                                <select
+                                    {...detailsForm.register("role", { required: true })}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                                >
+                                    <option value="employee">Employee</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="hr">HR</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Department</label>
+                                <input
+                                    {...detailsForm.register("department")}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-slate-700">Position</label>
+                            <input
+                                {...detailsForm.register("position")}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-slate-700">Reporting Manager</label>
+                            <select
+                                {...detailsForm.register("manager_id")}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                            >
+                                <option value="">No Manager (HR will approve leaves)</option>
+                                {managers.map(m => (
+                                    <option key={m.id} value={m.id}>
+                                        {m.first_name} {m.last_name} ({m.role})
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-slate-400">Leave requests will be sent to this manager for approval</p>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-slate-700">Joined Date</label>
+                            <div className="px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-600">
+                                {format(new Date(user.joined_date), 'MMM d, yyyy')}
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                            <div>
+                                <div className="text-sm font-medium text-slate-700">Account Status</div>
+                                <div className="text-xs text-slate-500">
+                                    {isActive ? 'User can log in and use the system' : 'User is deactivated and cannot log in'}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleToggleActive}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
+                                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                            >
+                                {isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium"
+                        >
+                            Save Changes
+                        </button>
+                    </form>
                 )}
 
                 {activeTab === 'probation' && (

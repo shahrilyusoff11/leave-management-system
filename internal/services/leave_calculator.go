@@ -59,6 +59,10 @@ func (lc *LeaveCalculator) CalculateSickLeaveEntitlement(joinedDate time.Time, c
 func (lc *LeaveCalculator) CalculateWorkingDays(startDate, endDate time.Time, leaveType models.LeaveType) (float64, error) {
 	var totalDays float64
 
+	// Normalize dates to start of day to avoid time comparison issues
+	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, startDate.Location())
+	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, endDate.Location())
+
 	// For maternity and paternity leave, count all days including weekends
 	if leaveType == models.LeaveTypeMaternity || leaveType == models.LeaveTypePaternity {
 		days := endDate.Sub(startDate).Hours()/24 + 1

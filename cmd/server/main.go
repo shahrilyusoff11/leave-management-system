@@ -89,7 +89,7 @@ func main() {
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager)
-	auditMiddleware := middleware.NewAuditMiddleware(auditLogger)
+	auditMiddleware := middleware.NewAuditMiddleware(auditLogger, auditService)
 
 	// Setup Gin router
 	if cfg.Server.Env == "production" {

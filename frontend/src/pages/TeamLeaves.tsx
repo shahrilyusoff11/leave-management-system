@@ -6,12 +6,16 @@ import type { LeaveRequest } from '../types';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 
 const TeamLeaves: React.FC = () => {
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [rejectModalOpen, setRejectModalOpen] = useState(false);
+    const [rejectingId, setRejectingId] = useState<string | null>(null);
+    const [rejectNote, setRejectNote] = useState('');
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -31,17 +35,40 @@ const TeamLeaves: React.FC = () => {
         fetchRequests();
     }, []);
 
-    const handleAction = async (id: string, action: 'approve' | 'reject') => {
-        if (!confirm(`Are you sure you want to ${action} this request?`)) return;
+    const handleApprove = async (id: string) => {
+        if (!confirm('Are you sure you want to approve this request?')) return;
 
         setProcessingId(id);
         try {
-            await api.put(`/leave-requests/${id}/${action}`);
-            // Refresh list
+            await api.put(`/leave-requests/${id}/approve`, {});
             fetchRequests();
         } catch (error) {
-            console.error(`Failed to ${action} request`, error);
-            alert(`Failed to ${action} request`);
+            console.error('Failed to approve request', error);
+            alert('Failed to approve request');
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const openRejectModal = (id: string) => {
+        setRejectingId(id);
+        setRejectNote('');
+        setRejectModalOpen(true);
+    };
+
+    const handleReject = async () => {
+        if (!rejectingId) return;
+
+        setProcessingId(rejectingId);
+        try {
+            await api.put(`/leave-requests/${rejectingId}/reject`, { comment: rejectNote });
+            setRejectModalOpen(false);
+            setRejectingId(null);
+            setRejectNote('');
+            fetchRequests();
+        } catch (error) {
+            console.error('Failed to reject request', error);
+            alert('Failed to reject request');
         } finally {
             setProcessingId(null);
         }
@@ -162,7 +189,7 @@ const TeamLeaves: React.FC = () => {
                                                         size="sm"
                                                         className="h-8 w-8 p-0 rounded-full bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
                                                         variant="ghost"
-                                                        onClick={() => handleAction(req.id, 'approve')}
+                                                        onClick={() => handleApprove(req.id)}
                                                         isLoading={processingId === req.id}
                                                     >
                                                         <Check className="h-4 w-4" />
@@ -171,7 +198,7 @@ const TeamLeaves: React.FC = () => {
                                                         size="sm"
                                                         className="h-8 w-8 p-0 rounded-full bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
                                                         variant="ghost"
-                                                        onClick={() => handleAction(req.id, 'reject')}
+                                                        onClick={() => openRejectModal(req.id)}
                                                         isLoading={processingId === req.id}
                                                     >
                                                         <X className="h-4 w-4" />
@@ -186,6 +213,33 @@ const TeamLeaves: React.FC = () => {
                     </table>
                 </div>
             </Card>
+
+            {/* Rejection Modal */}
+            <Modal isOpen={rejectModalOpen} onClose={() => setRejectModalOpen(false)} title="Reject Leave Request">
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-600">
+                        Please provide a reason for rejecting this leave request (optional).
+                    </p>
+                    <textarea
+                        value={rejectNote}
+                        onChange={(e) => setRejectNote(e.target.value)}
+                        className="w-full min-h-[100px] px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                        placeholder="e.g., Team workload is high during this period..."
+                    />
+                    <div className="flex justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setRejectModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={handleReject}
+                            isLoading={processingId === rejectingId}
+                        >
+                            Reject Request
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

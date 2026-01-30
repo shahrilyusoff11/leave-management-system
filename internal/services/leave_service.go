@@ -363,8 +363,15 @@ func (ls *LeaveService) RejectLeave(requestID, approverID uuid.UUID, comment str
 			return err
 		}
 
-		// Check if approver is the manager
-		if request.ApproverID == nil || *request.ApproverID != approverID {
+		// Check if request can be rejected
+		if request.Status != models.StatusPending && request.Status != models.StatusEscalated {
+			return errors.New("leave request is not pending")
+		}
+
+		// Authorization check:
+		// - If ApproverID is set, only that approver can reject
+		// - If ApproverID is nil (escalated), any HR/Admin can reject (handled at route level)
+		if request.ApproverID != nil && *request.ApproverID != approverID {
 			return errors.New("not authorized to reject this request")
 		}
 
