@@ -7,6 +7,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { getDisplayDuration, formatDuration } from '../utils/duration';
 import LeaveHistoryModal from '../components/LeaveHistoryModal';
 import { useToast } from '../components/ui/Toast';
@@ -23,6 +24,10 @@ const TeamLeaves: React.FC = () => {
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
     const [selectedLeaveType, setSelectedLeaveType] = useState<string>('');
+
+    // Confirmation Modal State
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [pendingAction, setPendingAction] = useState<{ type: 'approve', id: string } | null>(null);
 
     const openHistoryModal = (req: LeaveRequest) => {
         setSelectedRequestId(req.id);
@@ -48,21 +53,31 @@ const TeamLeaves: React.FC = () => {
         fetchRequests();
     }, []);
 
-    const handleApprove = async (id: string) => {
-        if (!confirm('Are you sure you want to approve this request?')) return;
+    const initiateApprove = (id: string) => {
+        setPendingAction({ type: 'approve', id });
+        setConfirmModalOpen(true);
+    };
 
-        setProcessingId(id);
+    const handleConfirmAction = async () => {
+        if (!pendingAction) return;
+
+        setProcessingId(pendingAction.id);
         try {
-            await api.put(`/leave-requests/${id}/approve`, {});
-            showToast('Leave request approved', 'success');
-            fetchRequests();
+            if (pendingAction.type === 'approve') {
+                await api.put(`/leave-requests/${pendingAction.id}/approve`, {});
+                showToast('Leave request approved', 'success');
+                fetchRequests();
+            }
         } catch (error) {
             console.error('Failed to approve request', error);
             showToast('Failed to approve request', 'error');
         } finally {
             setProcessingId(null);
+            setConfirmModalOpen(false);
+            setPendingAction(null);
         }
     };
+
 
     const openRejectModal = (id: string) => {
         setRejectingId(id);
@@ -226,7 +241,7 @@ const TeamLeaves: React.FC = () => {
                                                             size="sm"
                                                             className="h-8 w-8 p-0 rounded-full bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
                                                             variant="ghost"
-                                                            onClick={() => handleApprove(req.id)}
+                                                            onClick={() => initiateApprove(req.id)}
                                                             isLoading={processingId === req.id}
                                                         >
                                                             <Check className="h-4 w-4" />
@@ -284,6 +299,17 @@ const TeamLeaves: React.FC = () => {
                 onClose={() => setHistoryModalOpen(false)}
                 requestId={selectedRequestId}
                 leaveType={selectedLeaveType}
+            />
+
+            <ConfirmationModal
+                isOpen={confirmModalOpen}
+                onClose={() => setConfirmModalOpen(false)}
+                onConfirm={handleConfirmAction}
+                title="Approve Request"
+                message="Are you sure you want to approve this leave request? This action will update the employee's leave balance."
+                confirmText="Approve Request"
+                type="success"
+                isLoading={!!processingId}
             />
         </div>
     );

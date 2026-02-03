@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { format } from 'date-fns';
 import { useToast } from '../components/ui/Toast';
 
@@ -23,6 +24,11 @@ const HolidayManagement: React.FC = () => {
     const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+    // Confirmation Modal State
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [processingId, setProcessingId] = useState<string | null>(null);
 
     const fetchHolidays = async () => {
         setLoading(true);
@@ -42,15 +48,26 @@ const HolidayManagement: React.FC = () => {
         fetchHolidays();
     }, []);
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this holiday?')) return;
+    const initiateDelete = (id: string) => {
+        setPendingDeleteId(id);
+        setConfirmModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!pendingDeleteId) return;
+
+        setProcessingId(pendingDeleteId);
         try {
-            await api.delete(`/admin/holidays/${id}`);
+            await api.delete(`/admin/holidays/${pendingDeleteId}`);
             showToast('Holiday deleted', 'success');
             fetchHolidays();
         } catch (error) {
             console.error("Failed to delete holiday", error);
             showToast('Failed to delete holiday', 'error');
+        } finally {
+            setProcessingId(null);
+            setConfirmModalOpen(false);
+            setPendingDeleteId(null);
         }
     };
 
@@ -119,7 +136,7 @@ const HolidayManagement: React.FC = () => {
                                                 variant="ghost"
                                                 size="sm"
                                                 className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                                                onClick={() => handleDelete(holiday.id)}
+                                                onClick={() => initiateDelete(holiday.id)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -137,6 +154,17 @@ const HolidayManagement: React.FC = () => {
                 onClose={() => setIsCreateModalOpen(false)}
                 onSuccess={fetchHolidays}
                 showToast={showToast}
+            />
+
+            <ConfirmationModal
+                isOpen={confirmModalOpen}
+                onClose={() => setConfirmModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Holiday"
+                message="Are you sure you want to delete this holiday? This action cannot be undone."
+                confirmText="Delete Holiday"
+                type="danger"
+                isLoading={!!processingId}
             />
         </div>
     );

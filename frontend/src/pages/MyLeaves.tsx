@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { getDisplayDuration, formatDuration } from '../utils/duration';
 import LeaveHistoryModal from '../components/LeaveHistoryModal';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { useToast } from '../components/ui/Toast';
 
 const MyLeaves: React.FC = () => {
@@ -18,6 +19,11 @@ const MyLeaves: React.FC = () => {
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
     const [selectedLeaveType, setSelectedLeaveType] = useState<string>('');
+
+    // Confirmation Modal State
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+    const [processingId, setProcessingId] = useState<string | null>(null);
 
     const openHistoryModal = (req: LeaveRequest) => {
         setSelectedRequestId(req.id);
@@ -43,16 +49,26 @@ const MyLeaves: React.FC = () => {
         fetchRequests();
     }, []);
 
-    const handleCancel = async (id: string) => {
-        if (!confirm('Are you sure you want to cancel this leave request?')) return;
+    const initiateCancel = (id: string) => {
+        setPendingCancelId(id);
+        setConfirmModalOpen(true);
+    };
 
+    const handleConfirmCancel = async () => {
+        if (!pendingCancelId) return;
+
+        setProcessingId(pendingCancelId);
         try {
-            await api.put(`/leave-requests/${id}/cancel`);
+            await api.put(`/leave-requests/${pendingCancelId}/cancel`);
             showToast('Leave request cancelled', 'success');
             fetchRequests();
         } catch (error) {
             console.error("Failed to cancel request", error);
             showToast('Failed to cancel request', 'error');
+        } finally {
+            setProcessingId(null);
+            setConfirmModalOpen(false);
+            setPendingCancelId(null);
         }
     };
 
@@ -191,7 +207,7 @@ const MyLeaves: React.FC = () => {
                                                         variant="ghost"
                                                         size="sm"
                                                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                        onClick={() => handleCancel(req.id)}
+                                                        onClick={() => initiateCancel(req.id)}
                                                     >
                                                         Cancel
                                                     </Button>
@@ -211,6 +227,17 @@ const MyLeaves: React.FC = () => {
                 onClose={() => setHistoryModalOpen(false)}
                 requestId={selectedRequestId}
                 leaveType={selectedLeaveType}
+            />
+
+            <ConfirmationModal
+                isOpen={confirmModalOpen}
+                onClose={() => setConfirmModalOpen(false)}
+                onConfirm={handleConfirmCancel}
+                title="Cancel Leave Request"
+                message="Are you sure you want to cancel this leave request? This action cannot be undone."
+                confirmText="Cancel Request"
+                type="danger"
+                isLoading={!!processingId}
             />
         </div>
     );
