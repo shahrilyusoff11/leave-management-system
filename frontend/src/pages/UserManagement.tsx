@@ -449,7 +449,7 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
                                     {...detailsForm.register("role", { required: true })}
                                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                                 >
-                                    <option value="employee">Employee</option>
+                                    <option value="staff">Staff</option>
                                     <option value="manager">Manager</option>
                                     <option value="hr">HR</option>
                                     <option value="admin">Admin</option>
@@ -539,7 +539,12 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
                                 >
                                     <option value="annual">Annual</option>
                                     <option value="sick">Sick</option>
-                                    <option value="compassionate">Compassionate</option>
+                                    <option value="maternity">Maternity</option>
+                                    <option value="paternity">Paternity</option>
+                                    <option value="emergency">Emergency</option>
+                                    <option value="unpaid">Unpaid</option>
+                                    <option value="hospitalization">Hospitalization</option>
+                                    <option value="special">Special</option>
                                 </select>
                             </div>
                             <div className="space-y-1">

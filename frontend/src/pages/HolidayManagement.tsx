@@ -11,9 +11,11 @@ import { useToast } from '../components/ui/Toast';
 
 interface PublicHoliday {
     id: string;
+    name: string;
     date: string;
     description: string;
-    is_recurring: boolean;
+    state: string;
+    is_active: boolean;
 }
 
 const HolidayManagement: React.FC = () => {
@@ -70,9 +72,9 @@ const HolidayManagement: React.FC = () => {
                     <table className="w-full text-left text-sm">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-6 py-4 font-semibold text-slate-600">Name</th>
                                 <th className="px-6 py-4 font-semibold text-slate-600">Date</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Description</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Type</th>
+                                <th className="px-6 py-4 font-semibold text-slate-600">State</th>
                                 <th className="px-6 py-4 font-semibold text-slate-600 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -93,22 +95,22 @@ const HolidayManagement: React.FC = () => {
                                 holidays.map((holiday) => (
                                     <tr key={holiday.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-slate-900">
+                                            {holiday.name}
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-600">
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="h-4 w-4 text-slate-400" />
                                                 {format(new Date(holiday.date), 'MMMM d, yyyy')}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-slate-600">
-                                            {holiday.description}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-600">
-                                            {holiday.is_recurring ? (
+                                            {holiday.state ? (
                                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                                                    Recurring
+                                                    {holiday.state}
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-                                                    One-time
+                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                                                    Nationwide
                                                 </span>
                                             )}
                                         </td>
@@ -170,23 +172,23 @@ const CreateHolidayModal = ({ isOpen, onClose, onSuccess, showToast }: { isOpen:
                 )}
 
                 <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700">Description</label>
-                    <Input {...register('description', { required: 'Required' })} error={errors.description?.message as string} placeholder="e.g. New Year's Day" />
+                    <label className="text-sm font-medium text-slate-700">Name *</label>
+                    <Input {...register('name', { required: 'Name is required' })} error={errors.name?.message as string} placeholder="e.g. New Year" />
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700">Date</label>
-                    <Input type="date" {...register('date', { required: 'Required' })} error={errors.date?.message as string} />
+                    <label className="text-sm font-medium text-slate-700">Date *</label>
+                    <Input type="date" {...register('date', { required: 'Date is required' })} error={errors.date?.message as string} />
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        id="is_recurring"
-                        className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                        {...register('is_recurring')}
-                    />
-                    <label htmlFor="is_recurring" className="text-sm text-slate-700">Recurring yearly</label>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-slate-700">Description</label>
+                    <Input {...register('description')} error={errors.description?.message as string} placeholder="e.g. New Year's Day celebration" />
+                </div>
+
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-slate-700">State (leave empty for nationwide)</label>
+                    <Input {...register('state')} error={errors.state?.message as string} placeholder="e.g. Selangor, Perak" />
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6">
