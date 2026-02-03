@@ -7,6 +7,7 @@ import api from '../services/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { useToast } from '../components/ui/Toast';
 
 const requestSchema = z.object({
     leave_type: z.enum(['annual', 'sick', 'maternity', 'paternity', 'emergency', 'unpaid', 'special', 'hospitalization']),
@@ -19,6 +20,7 @@ type RequestFormData = z.infer<typeof requestSchema>;
 
 const RequestLeave: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { register, handleSubmit, formState: { errors }, watch } = useForm<RequestFormData>({
@@ -36,9 +38,20 @@ const RequestLeave: React.FC = () => {
         const start = new Date(startDate);
         const end = new Date(endDate);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-        const diffTime = Math.abs(end.getTime() - start.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        return diffDays > 0 ? diffDays : 0;
+        if (end < start) return 0;
+
+        // Count working days (exclude weekends)
+        let workingDays = 0;
+        const current = new Date(start);
+        while (current <= end) {
+            const dayOfWeek = current.getDay();
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                workingDays++;
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        return Math.max(workingDays, 1); // At least 1 day for same-day leave
     };
 
     const onSubmit = async (data: RequestFormData) => {
@@ -59,6 +72,7 @@ const RequestLeave: React.FC = () => {
             };
 
             await api.post('/leave-requests', payload);
+            showToast('Leave request submitted successfully', 'success');
             navigate('/dashboard');
         } catch (err: any) {
             setError(err.response?.data?.error || 'Failed to submit request');
@@ -106,12 +120,14 @@ const RequestLeave: React.FC = () => {
                                     type="date"
                                     label="Start Date"
                                     {...register('start_date')}
+                                    min={new Date().toISOString().split('T')[0]}
                                     error={errors.start_date?.message}
                                 />
                                 <Input
                                     type="date"
                                     label="End Date"
                                     {...register('end_date')}
+                                    min={startDate || new Date().toISOString().split('T')[0]}
                                     error={errors.end_date?.message}
                                 />
                             </div>

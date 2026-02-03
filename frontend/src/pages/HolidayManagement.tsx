@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { format } from 'date-fns';
+import { useToast } from '../components/ui/Toast';
 
 interface PublicHoliday {
     id: string;
@@ -16,6 +17,7 @@ interface PublicHoliday {
 }
 
 const HolidayManagement: React.FC = () => {
+    const { showToast } = useToast();
     const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -42,9 +44,11 @@ const HolidayManagement: React.FC = () => {
         if (!confirm('Are you sure you want to delete this holiday?')) return;
         try {
             await api.delete(`/admin/holidays/${id}`);
+            showToast('Holiday deleted', 'success');
             fetchHolidays();
         } catch (error) {
             console.error("Failed to delete holiday", error);
+            showToast('Failed to delete holiday', 'error');
         }
     };
 
@@ -130,12 +134,13 @@ const HolidayManagement: React.FC = () => {
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onSuccess={fetchHolidays}
+                showToast={showToast}
             />
         </div>
     );
 };
 
-const CreateHolidayModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) => {
+const CreateHolidayModal = ({ isOpen, onClose, onSuccess, showToast }: { isOpen: boolean, onClose: () => void, onSuccess: () => void, showToast: (msg: string, type: 'success' | 'error') => void }) => {
     const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm();
     const [error, setError] = useState('');
 
@@ -149,6 +154,7 @@ const CreateHolidayModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean, o
             reset();
             onSuccess();
             onClose();
+            showToast('Holiday added successfully', 'success');
         } catch (err: any) {
             setError(err.response?.data?.error || "Failed to create holiday");
         }

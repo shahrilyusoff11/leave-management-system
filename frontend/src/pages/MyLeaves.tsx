@@ -8,8 +8,10 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { getDisplayDuration, formatDuration } from '../utils/duration';
 import LeaveHistoryModal from '../components/LeaveHistoryModal';
+import { useToast } from '../components/ui/Toast';
 
 const MyLeaves: React.FC = () => {
+    const { showToast } = useToast();
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -46,11 +48,11 @@ const MyLeaves: React.FC = () => {
 
         try {
             await api.put(`/leave-requests/${id}/cancel`);
-            // Refresh list
+            showToast('Leave request cancelled', 'success');
             fetchRequests();
         } catch (error) {
             console.error("Failed to cancel request", error);
-            alert("Failed to cancel request");
+            showToast('Failed to cancel request', 'error');
         }
     };
 

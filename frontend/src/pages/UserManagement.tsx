@@ -9,6 +9,7 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Badge';
 import { format } from 'date-fns';
+import { useToast } from '../components/ui/Toast';
 
 const UserManagement: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
@@ -279,6 +280,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean, onCl
 };
 
 const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpen: boolean, onClose: () => void, onSuccess: () => void }) => {
+    const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<'details' | 'probation' | 'balance'>('details');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -329,8 +331,9 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
                 position: data.position,
                 manager_id: data.manager_id || null,
             });
-            setMessage('User details updated successfully');
             onSuccess();
+            onClose();
+            showToast('User updated successfully', 'success');
         } catch (err: any) {
             setError(err.response?.data?.error || "Failed to update user");
         }

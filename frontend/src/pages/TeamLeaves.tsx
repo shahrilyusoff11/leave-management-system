@@ -9,8 +9,10 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { getDisplayDuration, formatDuration } from '../utils/duration';
 import LeaveHistoryModal from '../components/LeaveHistoryModal';
+import { useToast } from '../components/ui/Toast';
 
 const TeamLeaves: React.FC = () => {
+    const { showToast } = useToast();
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
@@ -52,10 +54,11 @@ const TeamLeaves: React.FC = () => {
         setProcessingId(id);
         try {
             await api.put(`/leave-requests/${id}/approve`, {});
+            showToast('Leave request approved', 'success');
             fetchRequests();
         } catch (error) {
             console.error('Failed to approve request', error);
-            alert('Failed to approve request');
+            showToast('Failed to approve request', 'error');
         } finally {
             setProcessingId(null);
         }
@@ -76,10 +79,11 @@ const TeamLeaves: React.FC = () => {
             setRejectModalOpen(false);
             setRejectingId(null);
             setRejectNote('');
+            showToast('Leave request rejected', 'success');
             fetchRequests();
         } catch (error) {
             console.error('Failed to reject request', error);
-            alert('Failed to reject request');
+            showToast('Failed to reject request', 'error');
         } finally {
             setProcessingId(null);
         }
