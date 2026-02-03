@@ -12,6 +12,7 @@ export interface User {
     joined_date: string;
     is_active: boolean;
     is_confirmed?: boolean;
+    leave_entitlements?: LeaveBalance[];
 }
 
 export type LeaveType = 'annual' | 'sick' | 'maternity' | 'paternity' | 'emergency' | 'unpaid' | 'special' | 'hospitalization';
@@ -41,5 +42,6 @@ export interface LeaveBalance {
     total_entitlement: number;
     used: number;
     carried_forward: number;
+    adjusted: number;
     remaining: number; // Calculated, or implicit
 }

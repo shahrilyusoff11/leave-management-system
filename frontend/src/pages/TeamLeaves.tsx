@@ -221,9 +221,16 @@ const TeamLeaves: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <Badge variant={getStatusVariant(req.status)}>
-                                                {req.status}
-                                            </Badge>
+                                            <div className="flex flex-col gap-1">
+                                                <Badge variant={getStatusVariant(req.status)}>
+                                                    {req.status}
+                                                </Badge>
+                                                {req.status === 'rejected' && req.rejection_reason && (
+                                                    <span className="text-xs text-red-600 italic max-w-[150px] truncate" title={req.rejection_reason}>
+                                                        "{req.rejection_reason}"
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">

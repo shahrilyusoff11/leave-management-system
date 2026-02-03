@@ -287,22 +287,34 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
     const [isActive, setIsActive] = useState(user.is_active !== false);
     const [managers, setManagers] = useState<User[]>([]);
 
-    useEffect(() => {
-        const fetchManagers = async () => {
-            try {
-                const response = await api.get('/hr/users');
-                if (Array.isArray(response.data)) {
-                    const potentialManagers = response.data.filter((u: User) =>
-                        ['manager', 'hr', 'admin', 'sysadmin'].includes(u.role) && u.id !== user.id
-                    );
-                    setManagers(potentialManagers);
-                }
-            } catch (err) {
-                console.error("Failed to fetch managers", err);
+    const [fullUser, setFullUser] = useState<User>(user);
+    const [loadingDetails, setLoadingDetails] = useState(false);
+
+    const fetchUserAndManagers = async () => {
+        setLoadingDetails(true);
+        try {
+            // Fetch full user details (including entitlements)
+            const userResponse = await api.get(`/hr/users/${user.id}`);
+            setFullUser(userResponse.data);
+
+            // Fetch potential managers
+            const response = await api.get('/hr/users');
+            if (Array.isArray(response.data)) {
+                const potentialManagers = response.data.filter((u: User) =>
+                    ['manager', 'hr', 'admin', 'sysadmin'].includes(u.role) && u.id !== user.id
+                );
+                setManagers(potentialManagers);
             }
-        };
+        } catch (err) {
+            console.error("Failed to fetch user details or managers", err);
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
+
+    useEffect(() => {
         if (isOpen) {
-            fetchManagers();
+            fetchUserAndManagers();
         }
     }, [isOpen, user.id]);
 
@@ -364,6 +376,8 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
             });
             setMessage('Probation confirmed successfully');
             onSuccess();
+            // Refresh details to show confirmed state
+            fetchUserAndManagers();
         } catch (err: any) {
             setError(err.response?.data?.error || "Failed to update probation");
         }
@@ -382,14 +396,15 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
             });
             setMessage('Leave balance updated successfully');
             balanceForm.reset();
-            onSuccess();
+            onSuccess(); // Updates the parent list
+            fetchUserAndManagers(); // Reloads the current user details (table)
         } catch (err: any) {
             setError(err.response?.data?.error || "Failed to update balance");
         }
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Edit User: ${user.first_name} ${user.last_name}`}>
+        <Modal isOpen={isOpen} onClose={onClose} title={`Edit User: ${user.first_name} ${user.last_name}`} className="max-w-4xl">
             <div className="space-y-4">
                 <div className="flex border-b border-slate-200">
                     <button
@@ -536,48 +551,108 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
                 )}
 
                 {activeTab === 'balance' && (
-                    <form onSubmit={balanceForm.handleSubmit(handleUpdateBalance)} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-slate-700">Leave Type</label>
-                                <select
-                                    className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                                    {...balanceForm.register('leave_type', { required: true })}
-                                >
-                                    <option value="annual">Annual</option>
-                                    <option value="sick">Sick</option>
-                                    <option value="maternity">Maternity</option>
-                                    <option value="paternity">Paternity</option>
-                                    <option value="emergency">Emergency</option>
-                                    <option value="unpaid">Unpaid</option>
-                                    <option value="hospitalization">Hospitalization</option>
-                                    <option value="special">Special</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-slate-700">Year</label>
-                                <Input type="number" {...balanceForm.register('year', { required: true })} defaultValue={new Date().getFullYear()} />
-                            </div>
-                        </div>
+                    <div className="space-y-6">
+                        {loadingDetails ? (
+                            <div className="text-center py-4 text-slate-500">Loading leave balances...</div>
+                        ) : (
+                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 text-slate-600 font-medium">
+                                        <tr>
+                                            <th className="px-4 py-3">Leave Type</th>
+                                            <th className="px-4 py-3">Year</th>
+                                            <th className="px-4 py-3 text-right">Base Entitlement</th>
+                                            <th className="px-4 py-3 text-right">Adjustment</th>
+                                            <th className="px-4 py-3 text-right">Total Entitlement</th>
+                                            <th className="px-4 py-3 text-right">Used</th>
+                                            <th className="px-4 py-3 text-right">Remaining</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {fullUser.leave_entitlements?.map((balance) => {
+                                            // Calculate actual totals
+                                            const total = (balance.total_entitlement || 0) + (balance.adjusted || 0) + (balance.carried_forward || 0);
+                                            const remaining = total - (balance.used || 0);
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-slate-700">Total Entitlement</label>
-                                <Input type="number" step="0.5" {...balanceForm.register('total_entitlement', { required: true })} placeholder="e.g. 14" />
+                                            return (
+                                                <tr
+                                                    key={balance.id}
+                                                    className="hover:bg-slate-50 cursor-pointer transition-colors"
+                                                    onClick={() => {
+                                                        balanceForm.setValue('leave_type', balance.leave_type);
+                                                        balanceForm.setValue('year', balance.year);
+                                                        balanceForm.setValue('total_entitlement', balance.total_entitlement);
+                                                        balanceForm.setValue('adjustment', balance.adjusted);
+                                                    }}
+                                                >
+                                                    <td className="px-4 py-3 capitalize">{balance.leave_type}</td>
+                                                    <td className="px-4 py-3">{balance.year}</td>
+                                                    <td className="px-4 py-3 text-right">{balance.total_entitlement}</td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        {balance.adjusted > 0 ? `+${balance.adjusted}` : balance.adjusted}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-medium">{total}</td>
+                                                    <td className="px-4 py-3 text-right">{balance.used}</td>
+                                                    <td className="px-4 py-3 text-right font-medium text-brand-600">{remaining}</td>
+                                                </tr>
+                                            )
+                                        })}
+                                        {(!fullUser.leave_entitlements || fullUser.leave_entitlements.length === 0) && (
+                                            <tr>
+                                                <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
+                                                    No leave balances found for this user.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-slate-700">Manual Adjustment</label>
-                                <Input type="number" step="0.5" {...balanceForm.register('adjustment')} placeholder="e.g. +1 or -1" />
+                        )}
+
+                        <form onSubmit={balanceForm.handleSubmit(handleUpdateBalance)} className="space-y-4 pt-4 border-t border-slate-200">
+                            <h3 className="font-medium text-slate-900">Update Balance</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-slate-700">Leave Type</label>
+                                    <select
+                                        className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                                        {...balanceForm.register('leave_type', { required: true })}
+                                    >
+                                        <option value="annual">Annual</option>
+                                        <option value="sick">Sick</option>
+                                        <option value="maternity">Maternity</option>
+                                        <option value="paternity">Paternity</option>
+                                        <option value="emergency">Emergency</option>
+                                        <option value="unpaid">Unpaid</option>
+                                        <option value="hospitalization">Hospitalization</option>
+                                        <option value="special">Special</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-slate-700">Year</label>
+                                    <Input type="number" {...balanceForm.register('year', { required: true })} defaultValue={new Date().getFullYear()} />
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-slate-700">Reason</label>
-                            <Input {...balanceForm.register('reason', { required: true })} placeholder="Reason for change..." />
-                        </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-slate-700">Total Entitlement</label>
+                                    <Input type="number" step="0.5" {...balanceForm.register('total_entitlement', { required: true })} placeholder="e.g. 14" />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-slate-700">Manual Adjustment</label>
+                                    <Input type="number" step="0.5" {...balanceForm.register('adjustment')} placeholder="e.g. +1 or -1" />
+                                </div>
+                            </div>
 
-                        <Button type="submit" isLoading={balanceForm.formState.isSubmitting}>Update Balance</Button>
-                    </form>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Reason</label>
+                                <Input {...balanceForm.register('reason', { required: true })} placeholder="Reason for change..." />
+                            </div>
+
+                            <Button type="submit" isLoading={balanceForm.formState.isSubmitting}>Update Balance</Button>
+                        </form>
+                    </div>
                 )}
             </div>
         </Modal>
