@@ -11,6 +11,7 @@ export interface User {
     manager_id?: string;
     joined_date: string;
     is_active: boolean;
+    is_confirmed?: boolean;
 }
 
 export type LeaveType = 'annual' | 'sick' | 'maternity' | 'paternity' | 'emergency' | 'unpaid' | 'special' | 'hospitalization';

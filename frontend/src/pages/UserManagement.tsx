@@ -518,14 +518,21 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
                 )}
 
                 {activeTab === 'probation' && (
-                    <form onSubmit={probationForm.handleSubmit(handleConfirmProbation)} className="space-y-4">
-                        <p className="text-sm text-slate-600">Confirm successful completion of probation period.</p>
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-slate-700">Notes (Optional)</label>
-                            <Input {...probationForm.register('notes')} placeholder="Performance review notes..." />
+                    user.is_confirmed ? (
+                        <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
+                            <p className="text-green-800 font-medium">Probation Confirmed</p>
+                            <p className="text-green-600 text-sm mt-1">This user has successfully completed their probation period.</p>
                         </div>
-                        <Button type="submit" isLoading={probationForm.formState.isSubmitting}>Confirm Probation</Button>
-                    </form>
+                    ) : (
+                        <form onSubmit={probationForm.handleSubmit(handleConfirmProbation)} className="space-y-4">
+                            <p className="text-sm text-slate-600">Confirm successful completion of probation period.</p>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Notes (Optional)</label>
+                                <Input {...probationForm.register('notes')} placeholder="Performance review notes..." />
+                            </div>
+                            <Button type="submit" isLoading={probationForm.formState.isSubmitting}>Confirm Probation</Button>
+                        </form>
+                    )
                 )}
 
                 {activeTab === 'balance' && (
