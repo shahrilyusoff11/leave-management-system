@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { Filter, Check, X, History } from 'lucide-react';
+import { Filter, Check, X, History, FileText } from 'lucide-react';
 import api from '../services/api';
 import type { LeaveRequest } from '../types';
 import { Card } from '../components/ui/Card';
@@ -190,7 +190,20 @@ const TeamLeaves: React.FC = () => {
                                             {formatDuration(getDisplayDuration(req.duration_days, req.start_date, req.end_date))}
                                         </td>
                                         <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={req.reason}>
-                                            {req.reason}
+                                            <div className="flex items-center gap-2">
+                                                <span className="truncate">{req.reason}</span>
+                                                {req.attachment_url && (
+                                                    <a
+                                                        href={req.attachment_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-brand-600 hover:text-brand-700 inline-flex items-center"
+                                                        title="View Attachment"
+                                                    >
+                                                        <FileText className="h-4 w-4" />
+                                                    </a>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <Badge variant={getStatusVariant(req.status)}>

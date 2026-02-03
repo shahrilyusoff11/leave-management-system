@@ -14,6 +14,7 @@ const requestSchema = z.object({
     start_date: z.string().min(1, 'Start date is required'),
     end_date: z.string().min(1, 'End date is required'),
     reason: z.string().min(1, 'Reason is required'),
+    attachment_url: z.string().optional(),
 });
 
 type RequestFormData = z.infer<typeof requestSchema>;
@@ -23,7 +24,8 @@ const RequestLeave: React.FC = () => {
     const { showToast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { register, handleSubmit, formState: { errors }, watch } = useForm<RequestFormData>({
+    const [uploading, setUploading] = useState(false);
+    const { register, handleSubmit, setValue, formState: { errors }, watch } = useForm<RequestFormData>({
         resolver: zodResolver(requestSchema),
         defaultValues: {
             leave_type: 'annual'
@@ -32,6 +34,7 @@ const RequestLeave: React.FC = () => {
 
     const startDate = watch('start_date');
     const endDate = watch('end_date');
+    const leaveType = watch('leave_type');
 
     const calculateDuration = () => {
         if (!startDate || !endDate) return 0;
@@ -52,6 +55,30 @@ const RequestLeave: React.FC = () => {
         }
 
         return Math.max(workingDays, 1); // At least 1 day for same-day leave
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setUploading(true);
+        try {
+            const response = await api.post('/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            setValue('attachment_url', response.data.url);
+            showToast('File uploaded successfully', 'success');
+        } catch (err) {
+            showToast('Failed to upload file', 'error');
+            console.error(err);
+        } finally {
+            setUploading(false);
+        }
     };
 
     const onSubmit = async (data: RequestFormData) => {
@@ -79,6 +106,16 @@ const RequestLeave: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const attachmentLabels: Record<string, string> = {
+        sick: "Medical Certificate",
+        hospitalization: "Admission Letter / Medical Certificate",
+        maternity: "Medical Certificate",
+        paternity: "Birth Certificate / Medical Certificate",
+        emergency: "Supporting Document",
+        special: "Supporting Document",
+        unpaid: "Supporting Document"
     };
 
     return (
@@ -148,6 +185,27 @@ const RequestLeave: React.FC = () => {
                                 />
                                 {errors.reason && <p className="mt-1 text-sm text-red-500">{errors.reason.message}</p>}
                             </div>
+
+                            {leaveType && attachmentLabels[leaveType] && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">{attachmentLabels[leaveType]} (Optional)</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="file"
+                                            onChange={handleFileUpload}
+                                            className="block w-full text-sm text-slate-500
+                                                file:mr-4 file:py-2 file:px-4
+                                                file:rounded-full file:border-0
+                                                file:text-sm file:font-semibold
+                                                file:bg-brand-50 file:text-brand-700
+                                                hover:file:bg-brand-100"
+                                            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                        />
+                                        {uploading && <span className="text-sm text-slate-500">Uploading...</span>}
+                                    </div>
+                                    <p className="mt-1 text-xs text-slate-500">Allowed: jpg, png, pdf, doc. Max 5MB.</p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex gap-3 justify-end">

@@ -25,6 +25,7 @@ export interface LeaveRequest {
     end_date: string;
     duration_days: number;
     reason: string;
+    attachment_url?: string;
     status: LeaveStatus;
     approver_id?: string;
     rejection_reason?: string;

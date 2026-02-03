@@ -85,7 +85,9 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userService, jwtManager)
 	leaveHandler := handlers.NewLeaveHandler(leaveService)
 	hrHandler := handlers.NewHRHandler(userService, leaveService)
+
 	adminHandler := handlers.NewAdminHandler(holidayService, configService, leaveService, auditService)
+	uploadHandler := handlers.NewUploadHandler()
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager)
@@ -99,6 +101,9 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(auditMiddleware.AuditLog())
+
+	// Static files
+	router.Static("/uploads", "./uploads")
 
 	// Public routes
 	public := router.Group("/api/v1")
@@ -131,7 +136,9 @@ func main() {
 		protected.GET("/leave-requests/:id", leaveHandler.GetLeaveRequest)
 		protected.GET("/leave-requests/:id/chronology", leaveHandler.GetLeaveRequestChronology)
 		protected.PUT("/leave-requests/:id/cancel", leaveHandler.CancelLeaveRequest)
+
 		protected.GET("/leave-balance", leaveHandler.GetLeaveBalance)
+		protected.POST("/upload", uploadHandler.UploadFile)
 
 		// Manager routes
 		manager := protected.Group("")

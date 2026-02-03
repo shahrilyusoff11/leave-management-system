@@ -38,10 +38,11 @@ func (h *LeaveHandler) CreateLeaveRequest(c *gin.Context) {
 	}
 
 	// Validate attachment requirements
-	if req.LeaveType == models.LeaveTypeSick && req.AttachmentURL == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Medical certificate is required for sick leave"})
-		return
-	}
+	// Validate attachment requirements (Made optional per user request)
+	// if req.LeaveType == models.LeaveTypeSick && req.AttachmentURL == "" {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Medical certificate is required for sick leave"})
+	// 	return
+	// }
 
 	if req.LeaveType == models.LeaveTypeSpecial && req.SpecialLeaveType == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Special leave type is required"})
