@@ -140,6 +140,9 @@ func main() {
 		protected.GET("/leave-balance", leaveHandler.GetLeaveBalance)
 		protected.POST("/upload", uploadHandler.UploadFile)
 
+		// Public holidays (accessible by all authenticated users for leave calculation)
+		protected.GET("/public-holidays", adminHandler.GetPublicHolidays)
+
 		// Manager routes
 		manager := protected.Group("")
 		manager.Use(authMiddleware.RequireAnyRole([]models.UserRole{

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,12 +19,19 @@ const requestSchema = z.object({
 
 type RequestFormData = z.infer<typeof requestSchema>;
 
+interface PublicHoliday {
+    id: string;
+    name: string;
+    date: string;
+}
+
 const RequestLeave: React.FC = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
     const { register, handleSubmit, setValue, formState: { errors }, watch } = useForm<RequestFormData>({
         resolver: zodResolver(requestSchema),
         defaultValues: {
@@ -36,6 +43,37 @@ const RequestLeave: React.FC = () => {
     const endDate = watch('end_date');
     const leaveType = watch('leave_type');
 
+    // Fetch public holidays on mount
+    useEffect(() => {
+        const fetchHolidays = async () => {
+            try {
+                const currentYear = new Date().getFullYear();
+                const response = await api.get(`/public-holidays?year=${currentYear}`);
+                if (Array.isArray(response.data)) {
+                    setHolidays(response.data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch holidays', err);
+            }
+        };
+        fetchHolidays();
+    }, []);
+
+    // Check if a date is a public holiday
+    const isPublicHoliday = (date: Date): boolean => {
+        // Format as YYYY-MM-DD using local timezone
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        return holidays.some(h => {
+            // Extract just the date part from the holiday
+            const holidayDate = h.date.split('T')[0];
+            return holidayDate === dateStr;
+        });
+    };
+
     const calculateDuration = () => {
         if (!startDate || !endDate) return 0;
         const start = new Date(startDate);
@@ -43,13 +81,23 @@ const RequestLeave: React.FC = () => {
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
         if (end < start) return 0;
 
-        // Count working days (exclude weekends)
+        // For maternity/paternity, count all calendar days
+        if (leaveType === 'maternity' || leaveType === 'paternity') {
+            const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            return days;
+        }
+
+        // Count working days (exclude weekends and public holidays)
         let workingDays = 0;
         const current = new Date(start);
         while (current <= end) {
             const dayOfWeek = current.getDay();
+            // Skip weekends
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                workingDays++;
+                // Skip public holidays
+                if (!isPublicHoliday(current)) {
+                    workingDays++;
+                }
             }
             current.setDate(current.getDate() + 1);
         }
