@@ -634,3 +634,16 @@ func (ls *LeaveService) ArchiveOldRecords(beforeDate time.Time) error {
 	// For production, this would move old records to an archive table
 	return nil
 }
+
+// GetLeaveRequestChronology returns the history/timeline of a leave request
+func (ls *LeaveService) GetLeaveRequestChronology(requestID uuid.UUID) ([]models.Chronology, error) {
+	var chronology []models.Chronology
+	err := ls.db.Where("leave_request_id = ?", requestID).
+		Preload("Actor").
+		Order("created_at ASC").
+		Find(&chronology).Error
+	if err != nil {
+		return nil, err
+	}
+	return chronology, nil
+}

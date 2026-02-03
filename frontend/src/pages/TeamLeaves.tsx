@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { Filter, Check, X } from 'lucide-react';
+import { Filter, Check, X, History } from 'lucide-react';
 import api from '../services/api';
 import type { LeaveRequest } from '../types';
 import { Card } from '../components/ui/Card';
@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { getDisplayDuration, formatDuration } from '../utils/duration';
+import LeaveHistoryModal from '../components/LeaveHistoryModal';
 
 const TeamLeaves: React.FC = () => {
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
@@ -17,6 +18,15 @@ const TeamLeaves: React.FC = () => {
     const [rejectModalOpen, setRejectModalOpen] = useState(false);
     const [rejectingId, setRejectingId] = useState<string | null>(null);
     const [rejectNote, setRejectNote] = useState('');
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+    const [selectedLeaveType, setSelectedLeaveType] = useState<string>('');
+
+    const openHistoryModal = (req: LeaveRequest) => {
+        setSelectedRequestId(req.id);
+        setSelectedLeaveType(req.leave_type);
+        setHistoryModalOpen(true);
+    };
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -184,28 +194,38 @@ const TeamLeaves: React.FC = () => {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            {req.status === 'pending' && (
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 rounded-full bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
-                                                        variant="ghost"
-                                                        onClick={() => handleApprove(req.id)}
-                                                        isLoading={processingId === req.id}
-                                                    >
-                                                        <Check className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 rounded-full bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-                                                        variant="ghost"
-                                                        onClick={() => openRejectModal(req.id)}
-                                                        isLoading={processingId === req.id}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            )}
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 rounded-full bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200"
+                                                    variant="ghost"
+                                                    onClick={() => openHistoryModal(req)}
+                                                >
+                                                    <History className="h-4 w-4" />
+                                                </Button>
+                                                {req.status === 'pending' && (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 rounded-full bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
+                                                            variant="ghost"
+                                                            onClick={() => handleApprove(req.id)}
+                                                            isLoading={processingId === req.id}
+                                                        >
+                                                            <Check className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 rounded-full bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                                                            variant="ghost"
+                                                            onClick={() => openRejectModal(req.id)}
+                                                            isLoading={processingId === req.id}
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -241,6 +261,13 @@ const TeamLeaves: React.FC = () => {
                     </div>
                 </div>
             </Modal>
+
+            <LeaveHistoryModal
+                isOpen={historyModalOpen}
+                onClose={() => setHistoryModalOpen(false)}
+                requestId={selectedRequestId}
+                leaveType={selectedLeaveType}
+            />
         </div>
     );
 };

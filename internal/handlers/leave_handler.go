@@ -188,3 +188,19 @@ func (h *LeaveHandler) GetLeaveBalance(c *gin.Context) {
 
 	c.JSON(http.StatusOK, balance)
 }
+
+func (h *LeaveHandler) GetLeaveRequestChronology(c *gin.Context) {
+	requestID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request ID"})
+		return
+	}
+
+	chronology, err := h.leaveService.GetLeaveRequestChronology(requestID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, chronology)
+}

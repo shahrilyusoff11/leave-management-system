@@ -1,17 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { Calendar, Filter } from 'lucide-react';
+import { Calendar, Filter, History } from 'lucide-react';
 import api from '../services/api';
 import type { LeaveRequest } from '../types';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { getDisplayDuration, formatDuration } from '../utils/duration';
+import LeaveHistoryModal from '../components/LeaveHistoryModal';
 
 const MyLeaves: React.FC = () => {
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+    const [selectedLeaveType, setSelectedLeaveType] = useState<string>('');
+
+    const openHistoryModal = (req: LeaveRequest) => {
+        setSelectedRequestId(req.id);
+        setSelectedLeaveType(req.leave_type);
+        setHistoryModalOpen(true);
+    };
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -137,24 +147,41 @@ const MyLeaves: React.FC = () => {
                                             {req.reason}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <Badge variant={getStatusVariant(req.status)}>
-                                                {req.status}
-                                            </Badge>
+                                            <div className="flex flex-col gap-1">
+                                                <Badge variant={getStatusVariant(req.status)}>
+                                                    {req.status}
+                                                </Badge>
+                                                {req.status === 'rejected' && req.rejection_reason && (
+                                                    <span className="text-xs text-red-600 italic max-w-[150px] truncate" title={req.rejection_reason}>
+                                                        "{req.rejection_reason}"
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-slate-500 text-xs">
                                             {format(new Date(req.created_at), 'MMM d, yyyy')}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            {req.status === 'pending' && (
+                                            <div className="flex justify-end gap-2">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleCancel(req.id)}
+                                                    className="text-slate-600 hover:text-slate-700 hover:bg-slate-50"
+                                                    onClick={() => openHistoryModal(req)}
                                                 >
-                                                    Cancel
+                                                    <History className="h-4 w-4" />
                                                 </Button>
-                                            )}
+                                                {req.status === 'pending' && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                        onClick={() => handleCancel(req.id)}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -163,6 +190,13 @@ const MyLeaves: React.FC = () => {
                     </table>
                 </div>
             </Card>
+
+            <LeaveHistoryModal
+                isOpen={historyModalOpen}
+                onClose={() => setHistoryModalOpen(false)}
+                requestId={selectedRequestId}
+                leaveType={selectedLeaveType}
+            />
         </div>
     );
 };

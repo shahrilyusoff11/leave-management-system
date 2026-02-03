@@ -129,6 +129,7 @@ func main() {
 		protected.POST("/leave-requests", leaveHandler.CreateLeaveRequest)
 		protected.GET("/leave-requests", leaveHandler.GetMyLeaveRequests)
 		protected.GET("/leave-requests/:id", leaveHandler.GetLeaveRequest)
+		protected.GET("/leave-requests/:id/chronology", leaveHandler.GetLeaveRequestChronology)
 		protected.PUT("/leave-requests/:id/cancel", leaveHandler.CancelLeaveRequest)
 		protected.GET("/leave-balance", leaveHandler.GetLeaveBalance)
 
