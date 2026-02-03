@@ -1,0 +1,27 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+bin/
+
+# Logs
+*.log
+server_log.txt
+
+# Uploads
+uploads/
+!uploads/.gitkeep
+
+# Environment
+.env
+
+# Editor
+.vscode/
+.idea/
+
+# Node
+node_modules/
+dist/
+build/
+.DS_Store
