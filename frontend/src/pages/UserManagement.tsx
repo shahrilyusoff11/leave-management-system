@@ -293,18 +293,34 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
     const fetchUserAndManagers = async () => {
         setLoadingDetails(true);
         try {
-            // Fetch full user details (including entitlements)
-            const userResponse = await api.get(`/hr/users/${user.id}`);
-            setFullUser(userResponse.data);
+            // Fetch everything first to prevent race conditions with form reset
+            const [userFullResponse, allUsersResponse] = await Promise.all([
+                api.get(`/hr/users/${user.id}`),
+                api.get('/hr/users')
+            ]);
 
-            // Fetch potential managers
-            const response = await api.get('/hr/users');
-            if (Array.isArray(response.data)) {
-                const potentialManagers = response.data.filter((u: User) =>
+            const userData = userFullResponse.data;
+            setFullUser(userData);
+
+            if (Array.isArray(allUsersResponse.data)) {
+                const potentialManagers = allUsersResponse.data.filter((u: User) =>
                     ['manager', 'hr', 'admin', 'sysadmin'].includes(u.role) && u.id !== user.id
                 );
                 setManagers(potentialManagers);
             }
+
+            // Update form with latest details
+            // Doing this after fetching managers ensures the select options are ready
+            // (or at least collected in the same render batch)
+            detailsForm.reset({
+                first_name: userData.first_name,
+                last_name: userData.last_name,
+                role: userData.role,
+                department: userData.department || '',
+                position: userData.position || '',
+                manager_id: userData.manager_id || '',
+            });
+
         } catch (err) {
             console.error("Failed to fetch user details or managers", err);
         } finally {
