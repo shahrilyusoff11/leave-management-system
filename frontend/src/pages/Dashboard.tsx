@@ -104,7 +104,9 @@ const Dashboard: React.FC = () => {
                             <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-brand-500 rounded-full"
-                                    style={{ width: `${(annual?.used || 0) / (annual?.total_entitlement || 1) * 100}%` }}
+                                    style={{
+                                        width: `${Math.min(100, (annual?.used || 0) / ((annual?.total_entitlement || 0) + (annual?.carried_forward || 0) + ((annual as any)?.adjusted || 0) || 1) * 100)}%`
+                                    }}
                                 />
                             </div>
                         </CardContent>
@@ -130,7 +132,9 @@ const Dashboard: React.FC = () => {
                             <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-emerald-500 rounded-full"
-                                    style={{ width: `${(sick?.used || 0) / (sick?.total_entitlement || 1) * 100}%` }}
+                                    style={{
+                                        width: `${Math.min(100, (sick?.used || 0) / ((sick?.total_entitlement || 0) + (sick?.carried_forward || 0) + ((sick as any)?.adjusted || 0) || 1) * 100)}%`
+                                    }}
                                 />
                             </div>
                         </CardContent>
