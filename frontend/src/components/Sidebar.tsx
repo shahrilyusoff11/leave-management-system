@@ -9,7 +9,8 @@ import {
     LogOut,
     X,
     FileText,
-    Settings
+    Settings,
+    User
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../utils/cn';
@@ -85,6 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                         <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">Menu</div>
 
                         <NavItem to="/dashboard" icon={LayoutDashboard}>Dashboard</NavItem>
+                        <NavItem to="/profile" icon={User}>My Profile</NavItem>
                         <NavItem to="/my-leaves" icon={CalendarDays}>My Leaves</NavItem>
                         <NavItem to="/request-leave" icon={PlusCircle}>Request Leave</NavItem>
 

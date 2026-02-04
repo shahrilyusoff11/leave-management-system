@@ -128,6 +128,7 @@ func main() {
 			}
 			c.JSON(http.StatusOK, user)
 		})
+		protected.PUT("/profile", authHandler.UpdateProfile)
 		protected.PUT("/change-password", authHandler.ChangePassword)
 
 		// Leave requests
