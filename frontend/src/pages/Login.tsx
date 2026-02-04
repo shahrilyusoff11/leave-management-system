@@ -134,9 +134,6 @@ const Login: React.FC = () => {
                                     <label className="text-sm font-medium text-slate-700">
                                         Password
                                     </label>
-                                    <a href="#" className="text-sm font-medium text-brand-600 hover:text-brand-700 hover:underline">
-                                        Forgot password?
-                                    </a>
                                 </div>
                                 <div className="relative group">
                                     <Lock className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-brand-600 transition-colors" />
@@ -147,6 +144,11 @@ const Login: React.FC = () => {
                                         error={errors.password?.message}
                                         {...register('password')}
                                     />
+                                </div>
+                                <div className="flex justify-end">
+                                    <a href="#" className="text-sm font-medium text-brand-600 hover:text-brand-700 hover:underline">
+                                        Forgot password?
+                                    </a>
                                 </div>
                             </div>
                         </div>
