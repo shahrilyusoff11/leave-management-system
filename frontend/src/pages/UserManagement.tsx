@@ -533,7 +533,7 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
                 )}
 
                 {activeTab === 'probation' && (
-                    user.is_confirmed ? (
+                    fullUser.is_confirmed ? (
                         <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
                             <p className="text-green-800 font-medium">Probation Confirmed</p>
                             <p className="text-green-600 text-sm mt-1">This user has successfully completed their probation period.</p>
