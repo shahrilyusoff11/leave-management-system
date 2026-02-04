@@ -10,9 +10,10 @@ interface ModalProps {
     title: string;
     children: React.ReactNode;
     className?: string;
+    position?: 'center' | 'top';
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, className }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, className, position = 'center' }) => {
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
@@ -33,7 +34,10 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
     return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className={cn(
+                    "fixed inset-0 z-50 flex justify-center p-4",
+                    position === 'center' ? "items-center" : "items-start pt-20"
+                )}>
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -46,7 +50,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 10 }}
                         className={cn(
-                            "relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden",
+                            "relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden",
                             className
                         )}
                     >

@@ -404,7 +404,7 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Edit User: ${user.first_name} ${user.last_name}`} className="max-w-4xl">
+        <Modal isOpen={isOpen} onClose={onClose} title={`Edit User: ${user.first_name} ${user.last_name}`} className="max-w-4xl" position="top">
             <div className="space-y-4">
                 <div className="flex border-b border-slate-200">
                     <button
