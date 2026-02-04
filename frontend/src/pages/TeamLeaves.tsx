@@ -156,19 +156,19 @@ const TeamLeaves: React.FC = () => {
                     <table className="w-full text-left text-sm">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-6 py-4 font-semibold text-slate-600">Employee</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Type</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Period</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Duration</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Reason</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600">Status</th>
-                                <th className="px-6 py-4 font-semibold text-slate-600 text-right">Actions</th>
+                                <th className="px-4 py-4 font-semibold text-slate-600">Employee</th>
+                                <th className="px-4 py-4 font-semibold text-slate-600">Type</th>
+                                <th className="px-4 py-4 font-semibold text-slate-600">Period</th>
+                                <th className="px-4 py-4 font-semibold text-slate-600">Duration</th>
+                                <th className="px-4 py-4 font-semibold text-slate-600">Reason</th>
+                                <th className="px-4 py-4 font-semibold text-slate-600">Status</th>
+                                <th className="px-4 py-4 font-semibold text-slate-600 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {filteredRequests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="bg-slate-100 p-3 rounded-full mb-3">
                                                 <Check className="h-6 w-6 text-slate-400" />
@@ -181,30 +181,30 @@ const TeamLeaves: React.FC = () => {
                             ) : (
                                 filteredRequests.map((req) => (
                                     <tr key={req.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-xs">
+                                                <div className="h-8 w-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-xs shrink-0">
                                                     {req.user?.first_name?.[0]}{req.user?.last_name?.[0]}
                                                 </div>
-                                                <div>
-                                                    <p className="font-medium text-slate-900">{req.user?.first_name} {req.user?.last_name}</p>
-                                                    <p className="text-xs text-slate-500">{req.user?.email}</p>
+                                                <div className="min-w-0">
+                                                    <p className="font-medium text-slate-900 truncate">{req.user?.first_name} {req.user?.last_name}</p>
+                                                    <p className="text-xs text-slate-500 truncate max-w-[120px]">{req.user?.email}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-4">
                                             <span className="capitalize font-medium text-slate-700">{req.leave_type}</span>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
+                                        <td className="px-4 py-4 text-slate-600 whitespace-nowrap">
                                             <div className="flex flex-col">
                                                 <span>{format(new Date(req.start_date), 'MMM d, yyyy')}</span>
                                                 <span className="text-xs text-slate-400">to {format(new Date(req.end_date), 'MMM d, yyyy')}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600">
+                                        <td className="px-4 py-4 text-slate-600">
                                             {formatDuration(getDisplayDuration(req.duration_days, req.start_date, req.end_date))}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={req.reason}>
+                                        <td className="px-4 py-4 text-slate-600 max-w-[200px]" title={req.reason}>
                                             <div className="flex items-center gap-2">
                                                 <span className="truncate">{req.reason}</span>
                                                 {req.attachment_url && (
@@ -212,7 +212,7 @@ const TeamLeaves: React.FC = () => {
                                                         href={req.attachment_url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-brand-600 hover:text-brand-700 inline-flex items-center"
+                                                        className="text-brand-600 hover:text-brand-700 inline-flex items-center shrink-0"
                                                         title="View Attachment"
                                                     >
                                                         <FileText className="h-4 w-4" />
@@ -220,7 +220,7 @@ const TeamLeaves: React.FC = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-4">
                                             <div className="flex flex-col gap-1">
                                                 <Badge variant={getStatusVariant(req.status)}>
                                                     {req.status}
@@ -232,7 +232,7 @@ const TeamLeaves: React.FC = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-4 py-4 text-right">
                                             <div className="flex justify-end gap-2">
                                                 <Button
                                                     size="sm"

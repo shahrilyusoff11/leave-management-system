@@ -132,7 +132,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 
 	// Save changes
 	if err := h.userService.UpdateUser(user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile: " + err.Error()})
 		return
 	}
 
