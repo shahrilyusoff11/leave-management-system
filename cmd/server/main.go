@@ -52,8 +52,8 @@ func main() {
 	}
 
 	// Create super admin if not exists
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("Admin@123"), bcrypt.DefaultCost)
-	db.CreateSuperAdmin("admin@company.com", string(hashedPassword), "Super", "Admin")
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("P@ssw0rd"), bcrypt.DefaultCost)
+	db.CreateSuperAdmin("superadmin@example.com", string(hashedPassword), "Super", "Admin")
 
 	// Initialize services
 	jwtManager := auth.NewJWTManager(cfg.JWT.SecretKey, cfg.JWT.AccessTokenTTL)
