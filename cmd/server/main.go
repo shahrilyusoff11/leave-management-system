@@ -60,7 +60,14 @@ func main() {
 	auditLogger := logger.NewAuditLogger(appLogger)
 
 	holidayService := services.NewHolidayService(db.DB)
-	leaveCalculator := services.NewLeaveCalculator(holidayService)
+	leaveTypeConfigService := services.NewLeaveTypeConfigService(db.DB)
+
+	// Seed default leave type configs if none exist
+	if err := leaveTypeConfigService.SeedDefaultConfigs(); err != nil {
+		appLogger.Error("Failed to seed leave type configs", zap.Error(err))
+	}
+
+	leaveCalculator := services.NewLeaveCalculator(holidayService, leaveTypeConfigService)
 	leaveService := services.NewLeaveService(db.DB, leaveCalculator, auditLogger, holidayService)
 	userService := services.NewUserService(db.DB, auditLogger)
 	configService := services.NewConfigService(db.DB) // Initialize config service with DB
@@ -86,7 +93,7 @@ func main() {
 	leaveHandler := handlers.NewLeaveHandler(leaveService)
 	hrHandler := handlers.NewHRHandler(userService, leaveService)
 
-	adminHandler := handlers.NewAdminHandler(holidayService, configService, leaveService, auditService)
+	adminHandler := handlers.NewAdminHandler(holidayService, configService, leaveService, auditService, leaveTypeConfigService)
 	uploadHandler := handlers.NewUploadHandler()
 
 	// Initialize middleware
@@ -186,6 +193,8 @@ func main() {
 			admin.PUT("/config", adminHandler.UpdateSystemConfig)
 			admin.POST("/year-end-process", adminHandler.TriggerYearEndProcess)
 			admin.GET("/audit-logs", adminHandler.GetAuditLogs)
+			admin.GET("/leave-type-configs", adminHandler.GetLeaveTypeConfigs)
+			admin.PUT("/leave-type-configs/:type", adminHandler.UpdateLeaveTypeConfig)
 		}
 
 		// SysAdmin routes

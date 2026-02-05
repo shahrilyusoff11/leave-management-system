@@ -7,32 +7,131 @@ import (
 )
 
 type LeaveCalculator struct {
-	holidayService *HolidayService
+	holidayService     *HolidayService
+	leaveTypeConfigSvc *LeaveTypeConfigService
 }
 
-func NewLeaveCalculator(holidayService *HolidayService) *LeaveCalculator {
+func NewLeaveCalculator(holidayService *HolidayService, leaveTypeConfigSvc *LeaveTypeConfigService) *LeaveCalculator {
 	return &LeaveCalculator{
-		holidayService: holidayService,
+		holidayService:     holidayService,
+		leaveTypeConfigSvc: leaveTypeConfigSvc,
 	}
 }
 
-// Calculate Malaysian leave entitlements based on tenure
+// Calculate leave entitlement based on database config and years of service
 func (lc *LeaveCalculator) CalculateAnnualLeaveEntitlement(joinedDate time.Time, currentYear int) float64 {
 	yearsOfService := currentYear - joinedDate.Year()
 
+	// Get config from database
+	config, err := lc.leaveTypeConfigSvc.GetConfig(models.LeaveTypeAnnual)
+	if err != nil {
+		// Fallback to hardcoded defaults
+		return lc.getDefaultAnnualEntitlement(yearsOfService, joinedDate)
+	}
+
+	// Calculate base entitlement with years of service tiers
+	entitlement := lc.calculateEntitlementWithTiers(config, yearsOfService)
+
 	// Prorated calculation for first year
+	if yearsOfService == 0 && config.ProrateFirstYear {
+		monthsWorked := int(time.Since(joinedDate).Hours()/24/30) + 1
+		if monthsWorked > 12 {
+			monthsWorked = 12
+		}
+		proratedDays := (entitlement / 12) * float64(monthsWorked)
+		return proratedDays
+	}
+
+	return entitlement
+}
+
+func (lc *LeaveCalculator) CalculateSickLeaveEntitlement(joinedDate time.Time, currentYear int) float64 {
+	yearsOfService := currentYear - joinedDate.Year()
+
+	// Get config from database
+	config, err := lc.leaveTypeConfigSvc.GetConfig(models.LeaveTypeSick)
+	if err != nil {
+		// Fallback to hardcoded defaults
+		return lc.getDefaultSickEntitlement(yearsOfService)
+	}
+
+	return lc.calculateEntitlementWithTiers(config, yearsOfService)
+}
+
+// CalculateLeaveEntitlement calculates entitlement for any leave type
+func (lc *LeaveCalculator) CalculateLeaveEntitlement(leaveType models.LeaveType, joinedDate time.Time, currentYear int) float64 {
+	yearsOfService := currentYear - joinedDate.Year()
+
+	// Get config from database
+	config, err := lc.leaveTypeConfigSvc.GetConfig(leaveType)
+	if err != nil {
+		// Fallback to type-specific defaults
+		switch leaveType {
+		case models.LeaveTypeAnnual:
+			return lc.getDefaultAnnualEntitlement(yearsOfService, joinedDate)
+		case models.LeaveTypeSick:
+			return lc.getDefaultSickEntitlement(yearsOfService)
+		case models.LeaveTypeMaternity:
+			return 98
+		case models.LeaveTypePaternity:
+			return 7
+		case models.LeaveTypeHospitalization:
+			return 60
+		default:
+			return 0
+		}
+	}
+
+	// Calculate base entitlement with years of service tiers
+	entitlement := lc.calculateEntitlementWithTiers(config, yearsOfService)
+
+	// Prorated calculation for first year if applicable
+	if yearsOfService == 0 && config.ProrateFirstYear {
+		monthsWorked := int(time.Since(joinedDate).Hours()/24/30) + 1
+		if monthsWorked > 12 {
+			monthsWorked = 12
+		}
+		return (entitlement / 12) * float64(monthsWorked)
+	}
+
+	return entitlement
+}
+
+// calculateEntitlementWithTiers applies years of service bonus from config
+func (lc *LeaveCalculator) calculateEntitlementWithTiers(config *models.LeaveTypeConfig, yearsOfService int) float64 {
+	entitlement := config.BaseEntitlement
+
+	if config.YearsOfServiceTiers != nil {
+		for years, bonus := range config.YearsOfServiceTiers {
+			var yearsThreshold int
+			if _, err := fmt.Sscanf(years, "%d", &yearsThreshold); err != nil {
+				continue
+			}
+
+			if yearsOfService >= yearsThreshold {
+				switch b := bonus.(type) {
+				case float64:
+					entitlement += b
+				case int:
+					entitlement += float64(b)
+				}
+			}
+		}
+	}
+
+	return entitlement
+}
+
+// Fallback methods for when config is not available
+func (lc *LeaveCalculator) getDefaultAnnualEntitlement(yearsOfService int, joinedDate time.Time) float64 {
 	if yearsOfService == 0 {
 		monthsWorked := int(time.Since(joinedDate).Hours()/24/30) + 1
 		if monthsWorked > 12 {
 			monthsWorked = 12
 		}
-
-		// First year: 8 days pro-rated
-		proratedDays := (8.0 / 12) * float64(monthsWorked)
-		return proratedDays
+		return (8.0 / 12) * float64(monthsWorked)
 	}
 
-	// After first year
 	switch yearsOfService {
 	case 1, 2:
 		return 8
@@ -43,16 +142,13 @@ func (lc *LeaveCalculator) CalculateAnnualLeaveEntitlement(joinedDate time.Time,
 	}
 }
 
-func (lc *LeaveCalculator) CalculateSickLeaveEntitlement(joinedDate time.Time, currentYear int) float64 {
-	yearsOfService := currentYear - joinedDate.Year()
-
+func (lc *LeaveCalculator) getDefaultSickEntitlement(yearsOfService int) float64 {
 	if yearsOfService < 2 {
 		return 14
 	} else if yearsOfService < 5 {
 		return 18
-	} else {
-		return 22
 	}
+	return 22
 }
 
 // Calculate working days between dates, excluding weekends and public holidays

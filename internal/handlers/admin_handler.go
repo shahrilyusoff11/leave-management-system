@@ -12,21 +12,24 @@ import (
 )
 
 type AdminHandler struct {
-	holidayService *services.HolidayService
-	configService  *services.ConfigService
-	leaveService   *services.LeaveService
-	auditService   *services.AuditService
+	holidayService         *services.HolidayService
+	configService          *services.ConfigService
+	leaveService           *services.LeaveService
+	auditService           *services.AuditService
+	leaveTypeConfigService *services.LeaveTypeConfigService
 }
 
 func NewAdminHandler(holidayService *services.HolidayService,
 	configService *services.ConfigService,
 	leaveService *services.LeaveService,
-	auditService *services.AuditService) *AdminHandler {
+	auditService *services.AuditService,
+	leaveTypeConfigService *services.LeaveTypeConfigService) *AdminHandler {
 	return &AdminHandler{
-		holidayService: holidayService,
-		configService:  configService,
-		leaveService:   leaveService,
-		auditService:   auditService,
+		holidayService:         holidayService,
+		configService:          configService,
+		leaveService:           leaveService,
+		auditService:           auditService,
+		leaveTypeConfigService: leaveTypeConfigService,
 	}
 }
 
@@ -186,4 +189,33 @@ func (h *AdminHandler) GetAuditLogs(c *gin.Context) {
 		"page":  page,
 		"limit": limit,
 	})
+}
+
+// GetLeaveTypeConfigs returns all leave type configurations
+func (h *AdminHandler) GetLeaveTypeConfigs(c *gin.Context) {
+	configs, err := h.leaveTypeConfigService.GetAllConfigs()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, configs)
+}
+
+// UpdateLeaveTypeConfig updates configuration for a specific leave type
+func (h *AdminHandler) UpdateLeaveTypeConfig(c *gin.Context) {
+	leaveType := models.LeaveType(c.Param("type"))
+
+	var updates map[string]interface{}
+	if err := c.ShouldBindJSON(&updates); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.leaveTypeConfigService.UpdateConfig(leaveType, updates); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Leave type configuration updated"})
 }

@@ -236,18 +236,8 @@ func (ls *LeaveService) GetLeaveBalance(userID uuid.UUID, year int, leaveType mo
 }
 
 func (ls *LeaveService) calculateDefaultEntitlement(user *models.User, year int, leaveType models.LeaveType) float64 {
-	switch leaveType {
-	case models.LeaveTypeAnnual:
-		return ls.calculator.CalculateAnnualLeaveEntitlement(user.JoinedDate, year)
-	case models.LeaveTypeSick:
-		return ls.calculator.CalculateSickLeaveEntitlement(user.JoinedDate, year)
-	case models.LeaveTypeMaternity:
-		return 98
-	case models.LeaveTypePaternity:
-		return 7
-	default:
-		return 0
-	}
+	// Use the calculator which now reads from database config
+	return ls.calculator.CalculateLeaveEntitlement(leaveType, user.JoinedDate, year)
 }
 
 func (ls *LeaveService) calculateDefaultEntitlementForNextYear(userID uuid.UUID, year int) float64 {

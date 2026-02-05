@@ -21,6 +21,7 @@ func Migrate(db *gorm.DB) error {
 		&models.LeaveBalance{},
 		&models.Chronology{},
 		&models.PublicHoliday{},
+		&models.LeaveTypeConfig{},
 		&models.AuditLog{},
 		&services.SystemConfig{},
 	)

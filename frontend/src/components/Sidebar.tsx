@@ -10,7 +10,8 @@ import {
     X,
     FileText,
     Settings,
-    User
+    User,
+    Layers
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../utils/cn';
@@ -111,6 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                                 <NavItem to="/holidays" icon={CalendarDays}>Holidays</NavItem>
                                 <NavItem to="/audit-logs" icon={ShieldCheck}>Audit Logs</NavItem>
                                 <NavItem to="/settings" icon={Settings}>System Settings</NavItem>
+                                <NavItem to="/leave-type-settings" icon={Layers}>Leave Types</NavItem>
                             </>
                         )}
                     </nav>

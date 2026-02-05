@@ -92,6 +92,24 @@ type PublicHoliday struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+// LeaveTypeConfig stores configurable settings for each leave type
+type LeaveTypeConfig struct {
+	ID                    uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
+	LeaveType             LeaveType `gorm:"type:varchar(20);unique;not null" json:"leave_type"`
+	BaseEntitlement       float64   `gorm:"not null;default:0" json:"base_entitlement"`
+	YearsOfServiceTiers   JSONMap   `gorm:"type:jsonb" json:"years_of_service_tiers"` // {"2": 2, "5": 4, "10": 6}
+	ProrateFirstYear      bool      `gorm:"default:true" json:"prorate_first_year"`
+	AllowCarryForward     bool      `gorm:"default:false" json:"allow_carry_forward"`
+	MaxCarryForwardDays   int       `gorm:"default:0" json:"max_carry_forward_days"`
+	MaxDaysPerApplication *int      `json:"max_days_per_application"`
+	RequiresAttachment    bool      `gorm:"default:false" json:"requires_attachment"`
+	MinAdvanceDays        int       `gorm:"default:0" json:"min_advance_days"`
+	IsActive              bool      `gorm:"default:true" json:"is_active"`
+	DisplayOrder          int       `gorm:"default:0" json:"display_order"`
+	CreatedAt             time.Time `json:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at"`
+}
+
 type AuditLog struct {
 	ID          uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
 	ActorID     uuid.UUID `gorm:"not null" json:"actor_id"`

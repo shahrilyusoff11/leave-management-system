@@ -13,6 +13,7 @@ import HolidayManagement from './pages/HolidayManagement';
 import Profile from './pages/Profile';
 import HRLeaves from './pages/HRLeaves';
 import SystemSettings from './pages/SystemSettings';
+import LeaveTypeSettings from './pages/LeaveTypeSettings';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/holidays" element={<HolidayManagement />} />
             <Route path="/settings" element={<SystemSettings />} />
+            <Route path="/leave-type-settings" element={<LeaveTypeSettings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
