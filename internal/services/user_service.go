@@ -70,8 +70,16 @@ func (us *UserService) CreateUser(user *models.User) error {
 			return err
 		}
 
+		// Determine the year for initial leave balances
+		// If joined in the past, use current year. If future, use join year.
+		initialBalanceYear := user.JoinedDate.Year()
+		currentYear := time.Now().Year()
+		if initialBalanceYear < currentYear {
+			initialBalanceYear = currentYear
+		}
+
 		// Create default leave balances
-		return us.createDefaultLeaveBalances(tx, user.ID, user.JoinedDate.Year())
+		return us.createDefaultLeaveBalances(tx, user.ID, initialBalanceYear)
 	})
 }
 
