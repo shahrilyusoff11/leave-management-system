@@ -208,49 +208,86 @@ const LeaveTypeSettings: React.FC = () => {
                                     </div>
 
                                     {/* Years of Service Bonus Editor */}
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">
-                                            Years of Service Bonus
-                                        </label>
-                                        <div className="space-y-2 p-3 bg-slate-50 rounded-lg">
-                                            {serviceTiers.map((tier, index) => (
-                                                <div key={index} className="flex items-center gap-2">
-                                                    <span className="text-sm text-slate-500">After</span>
-                                                    <Input
-                                                        type="number"
-                                                        value={tier.years}
-                                                        onChange={(e) => handleTierChange(index, 'years', e.target.value)}
-                                                        className="w-16 text-center"
-                                                        min="1"
-                                                    />
-                                                    <span className="text-sm text-slate-500">years:</span>
-                                                    <span className="text-sm text-slate-700">+</span>
-                                                    <Input
-                                                        type="number"
-                                                        value={tier.bonus}
-                                                        onChange={(e) => handleTierChange(index, 'bonus', e.target.value)}
-                                                        className="w-16 text-center"
-                                                        min="0"
-                                                    />
-                                                    <span className="text-sm text-slate-500">days</span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveTier(index)}
-                                                        className="p-1 text-red-500 hover:bg-red-50 rounded"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                            <button
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-sm font-medium text-slate-700">
+                                                Years of Service Bonus
+                                            </label>
+                                            <Button
                                                 type="button"
+                                                variant="outline"
                                                 onClick={handleAddTier}
-                                                className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 mt-2"
+                                                className="h-8 text-xs px-3"
                                             >
-                                                <Plus className="h-4 w-4" />
-                                                Add tier
-                                            </button>
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Add Tier
+                                            </Button>
                                         </div>
+
+                                        {serviceTiers.length > 0 ? (
+                                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
+                                                        <tr>
+                                                            <th className="px-4 py-2 text-left w-1/2">Service Requirement</th>
+                                                            <th className="px-4 py-2 text-left w-1/2">Bonus Entitlement</th>
+                                                            <th className="px-4 py-2 w-10"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100 bg-white">
+                                                        {serviceTiers.map((tier, index) => (
+                                                            <tr key={index} className="group hover:bg-slate-50">
+                                                                <td className="px-4 py-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-slate-500">After</span>
+                                                                        <Input
+                                                                            type="number"
+                                                                            value={tier.years}
+                                                                            onChange={(e) => handleTierChange(index, 'years', e.target.value)}
+                                                                            className="w-20 h-9 text-center"
+                                                                            min="1"
+                                                                            placeholder="1"
+                                                                        />
+                                                                        <span className="text-slate-500">years</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-slate-500">+</span>
+                                                                        <Input
+                                                                            type="number"
+                                                                            value={tier.bonus}
+                                                                            onChange={(e) => handleTierChange(index, 'bonus', e.target.value)}
+                                                                            className="w-20 h-9 text-center"
+                                                                            min="0"
+                                                                            placeholder="1"
+                                                                        />
+                                                                        <span className="text-slate-500">days</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-2 text-right">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleRemoveTier(index)}
+                                                                        className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-md transition-colors"
+                                                                        title="Remove tier"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="text-sm text-slate-500 italic p-8 bg-slate-50 rounded-lg text-center border border-dashed border-slate-200">
+                                                No service bonus tiers configured.
+                                                <div className="mt-2">
+                                                    Click "Add Tier" to reward long-serving employees.
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="space-y-1">
