@@ -641,7 +641,7 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
                                         <option value="emergency">Emergency</option>
                                         <option value="unpaid">Unpaid</option>
                                         <option value="hospitalization">Hospitalization</option>
-                                        <option value="special">Special</option>
+                                        <option value="unrecorded">Unrecorded</option>
                                     </select>
                                 </div>
                                 <div className="space-y-1">

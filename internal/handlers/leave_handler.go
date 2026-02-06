@@ -20,12 +20,12 @@ func NewLeaveHandler(leaveService *services.LeaveService) *LeaveHandler {
 }
 
 type CreateLeaveRequest struct {
-	LeaveType        models.LeaveType `json:"leave_type" binding:"required"`
-	StartDate        time.Time        `json:"start_date" binding:"required"`
-	EndDate          time.Time        `json:"end_date" binding:"required"`
-	Reason           string           `json:"reason" binding:"required"`
-	AttachmentURL    string           `json:"attachment_url"`
-	SpecialLeaveType string           `json:"special_leave_type"`
+	LeaveType              models.LeaveType `json:"leave_type" binding:"required"`
+	StartDate              time.Time        `json:"start_date" binding:"required"`
+	EndDate                time.Time        `json:"end_date" binding:"required"`
+	Reason                 string           `json:"reason" binding:"required"`
+	AttachmentURL          string           `json:"attachment_url"`
+	UnrecordedLeaveSubtype string           `json:"unrecorded_leave_subtype"`
 }
 
 func (h *LeaveHandler) CreateLeaveRequest(c *gin.Context) {
@@ -44,21 +44,22 @@ func (h *LeaveHandler) CreateLeaveRequest(c *gin.Context) {
 	// 	return
 	// }
 
-	if req.LeaveType == models.LeaveTypeSpecial && req.SpecialLeaveType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Special leave type is required"})
+	if req.LeaveType == models.LeaveTypeUnrecorded && req.UnrecordedLeaveSubtype == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unrecorded leave type requires a specific type/reason"})
 		return
 	}
 
-	leaveRequest := &models.LeaveRequest{
-		LeaveType:        req.LeaveType,
-		StartDate:        req.StartDate,
-		EndDate:          req.EndDate,
-		Reason:           req.Reason,
-		AttachmentURL:    req.AttachmentURL,
-		SpecialLeaveType: req.SpecialLeaveType,
+	leaveRequest := models.LeaveRequest{
+		UserID:                 userID, // From middleware
+		LeaveType:              req.LeaveType,
+		StartDate:              req.StartDate,
+		EndDate:                req.EndDate,
+		Reason:                 req.Reason,
+		AttachmentURL:          req.AttachmentURL,
+		UnrecordedLeaveSubtype: req.UnrecordedLeaveSubtype,
 	}
 
-	if err := h.leaveService.CreateLeaveRequest(userID, leaveRequest); err != nil {
+	if err := h.leaveService.CreateLeaveRequest(userID, &leaveRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

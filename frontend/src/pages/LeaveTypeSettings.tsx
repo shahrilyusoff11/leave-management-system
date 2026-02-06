@@ -32,7 +32,7 @@ const leaveTypeLabels: Record<string, string> = {
     'paternity': 'Paternity Leave',
     'emergency': 'Emergency Leave',
     'unpaid': 'Unpaid Leave',
-    'special': 'Special Leave',
+    'unrecorded': 'Unrecorded Leave',
     'hospitalization': 'Hospitalization Leave',
 };
 

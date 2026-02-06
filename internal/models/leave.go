@@ -18,7 +18,7 @@ const (
 	LeaveTypePaternity       LeaveType = "paternity"
 	LeaveTypeEmergency       LeaveType = "emergency"
 	LeaveTypeUnpaid          LeaveType = "unpaid"
-	LeaveTypeSpecial         LeaveType = "special"
+	LeaveTypeUnrecorded      LeaveType = "unrecorded"
 	LeaveTypeHospitalization LeaveType = "hospitalization"
 )
 
@@ -33,28 +33,28 @@ const (
 )
 
 type LeaveRequest struct {
-	ID                 uuid.UUID    `gorm:"type:uuid;primary_key" json:"id"`
-	UserID             uuid.UUID    `gorm:"not null" json:"user_id"`
-	User               User         `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	LeaveType          LeaveType    `gorm:"type:varchar(20);not null" json:"leave_type"`
-	StartDate          time.Time    `gorm:"not null" json:"start_date"`
-	EndDate            time.Time    `gorm:"not null" json:"end_date"`
-	DurationDays       float64      `gorm:"not null" json:"duration_days"` // Float for half-day leaves
-	Reason             string       `json:"reason"`
-	Status             LeaveStatus  `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	ApproverID         *uuid.UUID   `json:"approver_id"`
-	Approver           *User        `gorm:"foreignKey:ApproverID" json:"approver,omitempty"`
-	ApprovedAt         *time.Time   `json:"approved_at"`
-	RejectedAt         *time.Time   `json:"rejected_at"`
-	RejectionReason    string       `json:"rejection_reason"`
-	AttachmentURL      string       `json:"attachment_url"`
-	AttachmentFileName string       `json:"attachment_file_name"`
-	IsEscalated        bool         `gorm:"default:false" json:"is_escalated"`
-	EscalatedAt        *time.Time   `json:"escalated_at"`
-	SpecialLeaveType   string       `json:"special_leave_type"` // For marriage, compassionate, hajj
-	ChronologyEntries  []Chronology `gorm:"foreignKey:LeaveRequestID" json:"chronology_entries,omitempty"`
-	CreatedAt          time.Time    `json:"created_at"`
-	UpdatedAt          time.Time    `json:"updated_at"`
+	ID                     uuid.UUID    `gorm:"type:uuid;primary_key" json:"id"`
+	UserID                 uuid.UUID    `gorm:"not null" json:"user_id"`
+	User                   User         `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	LeaveType              LeaveType    `gorm:"type:varchar(20);not null" json:"leave_type"`
+	StartDate              time.Time    `gorm:"not null" json:"start_date"`
+	EndDate                time.Time    `gorm:"not null" json:"end_date"`
+	DurationDays           float64      `gorm:"not null" json:"duration_days"` // Float for half-day leaves
+	Reason                 string       `json:"reason"`
+	Status                 LeaveStatus  `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	ApproverID             *uuid.UUID   `json:"approver_id"`
+	Approver               *User        `gorm:"foreignKey:ApproverID" json:"approver,omitempty"`
+	ApprovedAt             *time.Time   `json:"approved_at"`
+	RejectedAt             *time.Time   `json:"rejected_at"`
+	RejectionReason        string       `json:"rejection_reason"`
+	AttachmentURL          string       `json:"attachment_url"`
+	AttachmentFileName     string       `json:"attachment_file_name"`
+	IsEscalated            bool         `gorm:"default:false" json:"is_escalated"`
+	EscalatedAt            *time.Time   `json:"escalated_at"`
+	UnrecordedLeaveSubtype string       `json:"unrecorded_leave_subtype"` // For marriage, compassionate, hajj
+	ChronologyEntries      []Chronology `gorm:"foreignKey:LeaveRequestID" json:"chronology_entries,omitempty"`
+	CreatedAt              time.Time    `json:"created_at"`
+	UpdatedAt              time.Time    `json:"updated_at"`
 }
 
 type LeaveBalance struct {

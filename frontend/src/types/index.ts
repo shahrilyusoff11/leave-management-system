@@ -15,7 +15,7 @@ export interface User {
     leave_entitlements?: LeaveBalance[];
 }
 
-export type LeaveType = 'annual' | 'sick' | 'maternity' | 'paternity' | 'emergency' | 'unpaid' | 'special' | 'hospitalization';
+export type LeaveType = 'annual' | 'sick' | 'maternity' | 'paternity' | 'emergency' | 'unpaid' | 'unrecorded' | 'hospitalization';
 export type LeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export interface LeaveRequest {

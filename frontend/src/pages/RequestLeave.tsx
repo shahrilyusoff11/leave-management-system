@@ -10,12 +10,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { useToast } from '../components/ui/Toast';
 
 const requestSchema = z.object({
-    leave_type: z.enum(['annual', 'sick', 'maternity', 'paternity', 'emergency', 'unpaid', 'special', 'hospitalization']),
+    leave_type: z.enum(['annual', 'sick', 'maternity', 'paternity', 'emergency', 'unpaid', 'unrecorded', 'hospitalization']),
     start_date: z.string().min(1, 'Start date is required'),
     end_date: z.string().min(1, 'End date is required'),
     reason: z.string().min(1, 'Reason is required'),
+    special_leave_type: z.string().optional(),
     attachment_url: z.string().optional(),
-});
+})
+    .refine((data) => {
+        if (data.leave_type === 'unrecorded' && !data.special_leave_type) {
+            return false;
+        }
+        return true;
+    }, {
+        message: "Specific reason is required for Unrecorded Leave",
+        path: ["special_leave_type"],
+    });
 
 type RequestFormData = z.infer<typeof requestSchema>;
 
@@ -165,6 +175,7 @@ const RequestLeave: React.FC = () => {
                 start_date: new Date(data.start_date).toISOString(),
                 end_date: new Date(data.end_date).toISOString(),
                 duration_days: calculateDuration(), // Backend might recalculate this
+                special_leave_type: data.leave_type === 'unrecorded' ? data.special_leave_type : undefined,
             };
 
             await api.post('/leave-requests', payload);
@@ -213,6 +224,18 @@ const RequestLeave: React.FC = () => {
                                 </select>
                                 {errors.leave_type && <p className="mt-1 text-sm text-red-500">{errors.leave_type.message}</p>}
                             </div>
+
+                            {leaveType === 'unrecorded' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Specific Reason</label>
+                                    <Input
+                                        {...register('unrecorded_leave_subtype')}
+                                        placeholder="e.g. Marriage, Hajj, Compassionate"
+                                        error={errors.unrecorded_leave_subtype?.message}
+                                    />
+                                    <p className="mt-1 text-xs text-slate-500">Please specify the type of unrecorded leave.</p>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <Input

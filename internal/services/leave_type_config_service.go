@@ -97,6 +97,14 @@ func (s *LeaveTypeConfigService) UpdateConfig(leaveType models.LeaveType, update
 
 // SeedDefaultConfigs creates default configurations if none exist
 func (s *LeaveTypeConfigService) SeedDefaultConfigs() error {
+	// Migration: Rename 'special' to 'unrecorded'
+	// This ensures existing databases are updated to the new terminology
+	if err := s.db.Model(&models.LeaveTypeConfig{}).
+		Where("leave_type = ?", "special").
+		Update("leave_type", models.LeaveTypeUnrecorded).Error; err != nil {
+		return err // Log warning or return error? Error is safer.
+	}
+
 	var count int64
 	s.db.Model(&models.LeaveTypeConfig{}).Count(&count)
 	if count > 0 {
@@ -177,7 +185,7 @@ func (s *LeaveTypeConfigService) SeedDefaultConfigs() error {
 		},
 		{
 			ID:                uuid.New(),
-			LeaveType:         models.LeaveTypeSpecial,
+			LeaveType:         models.LeaveTypeUnrecorded,
 			BaseEntitlement:   0,
 			ProrateFirstYear:  false,
 			AllowCarryForward: false,
