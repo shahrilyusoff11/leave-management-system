@@ -195,6 +195,7 @@ func main() {
 			admin.PUT("/config", adminHandler.UpdateSystemConfig)
 			admin.POST("/year-end-process", adminHandler.TriggerYearEndProcess)
 			admin.GET("/audit-logs", adminHandler.GetAuditLogs)
+			admin.GET("/leave-type-configs", adminHandler.GetLeaveTypeConfigs)
 			admin.PUT("/leave-type-configs/:type", adminHandler.UpdateLeaveTypeConfig)
 		}
 
