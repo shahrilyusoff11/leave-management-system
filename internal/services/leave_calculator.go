@@ -20,7 +20,15 @@ func NewLeaveCalculator(holidayService *HolidayService, leaveTypeConfigSvc *Leav
 
 // Calculate leave entitlement based on database config and years of service
 func (lc *LeaveCalculator) CalculateAnnualLeaveEntitlement(joinedDate time.Time, currentYear int) float64 {
+	// Calculate years of service based on anniversary date relative to start of entitlement year
+	calculationDate := time.Date(currentYear, time.January, 1, 0, 0, 0, 0, joinedDate.Location())
 	yearsOfService := currentYear - joinedDate.Year()
+	if joinedDate.AddDate(yearsOfService, 0, 0).After(calculationDate) {
+		yearsOfService--
+	}
+	if yearsOfService < 0 {
+		yearsOfService = 0
+	}
 
 	// Get config from database
 	config, err := lc.leaveTypeConfigSvc.GetConfig(models.LeaveTypeAnnual)
@@ -59,7 +67,15 @@ func (lc *LeaveCalculator) CalculateAnnualLeaveEntitlement(joinedDate time.Time,
 }
 
 func (lc *LeaveCalculator) CalculateSickLeaveEntitlement(joinedDate time.Time, currentYear int) float64 {
+	// Calculate years of service based on anniversary date relative to start of entitlement year
+	calculationDate := time.Date(currentYear, time.January, 1, 0, 0, 0, 0, joinedDate.Location())
 	yearsOfService := currentYear - joinedDate.Year()
+	if joinedDate.AddDate(yearsOfService, 0, 0).After(calculationDate) {
+		yearsOfService--
+	}
+	if yearsOfService < 0 {
+		yearsOfService = 0
+	}
 
 	// Get config from database
 	config, err := lc.leaveTypeConfigSvc.GetConfig(models.LeaveTypeSick)
@@ -73,7 +89,15 @@ func (lc *LeaveCalculator) CalculateSickLeaveEntitlement(joinedDate time.Time, c
 
 // CalculateLeaveEntitlement calculates entitlement for any leave type
 func (lc *LeaveCalculator) CalculateLeaveEntitlement(leaveType models.LeaveType, joinedDate time.Time, currentYear int) float64 {
+	// Calculate years of service based on anniversary date relative to start of entitlement year
+	calculationDate := time.Date(currentYear, time.January, 1, 0, 0, 0, 0, joinedDate.Location())
 	yearsOfService := currentYear - joinedDate.Year()
+	if joinedDate.AddDate(yearsOfService, 0, 0).After(calculationDate) {
+		yearsOfService--
+	}
+	if yearsOfService < 0 {
+		yearsOfService = 0
+	}
 
 	// Get config from database
 	config, err := lc.leaveTypeConfigSvc.GetConfig(leaveType)
