@@ -13,19 +13,21 @@ import (
 )
 
 type LeaveService struct {
-	db             *gorm.DB
-	calculator     *LeaveCalculator
-	auditLogger    *logger.AuditLogger
-	holidayService *HolidayService
+	db                 *gorm.DB
+	calculator         *LeaveCalculator
+	auditLogger        *logger.AuditLogger
+	holidayService     *HolidayService
+	leaveTypeConfigSvc *LeaveTypeConfigService
 }
 
 func NewLeaveService(db *gorm.DB, calculator *LeaveCalculator,
-	auditLogger *logger.AuditLogger, holidayService *HolidayService) *LeaveService {
+	auditLogger *logger.AuditLogger, holidayService *HolidayService, leaveTypeConfigSvc *LeaveTypeConfigService) *LeaveService {
 	return &LeaveService{
-		db:             db,
-		calculator:     calculator,
-		auditLogger:    auditLogger,
-		holidayService: holidayService,
+		db:                 db,
+		calculator:         calculator,
+		auditLogger:        auditLogger,
+		holidayService:     holidayService,
+		leaveTypeConfigSvc: leaveTypeConfigSvc,
 	}
 }
 
@@ -268,7 +270,16 @@ func (ls *LeaveService) ProcessYearEndCarryForward() error {
 			available := balance.TotalEntitlement + balance.Adjusted - balance.Used
 			if available > 0 {
 				// Carry forward up to max limit (configurable)
-				maxCarryForward := 5.0 // Should come from config
+				maxCarryForward := 5.0 // Default fallback
+
+				// Get config for annual leave
+				config, err := ls.leaveTypeConfigSvc.GetConfig(models.LeaveTypeAnnual)
+				if err == nil && config.AllowCarryForward {
+					maxCarryForward = float64(config.MaxCarryForwardDays)
+				} else if err == nil && !config.AllowCarryForward {
+					maxCarryForward = 0
+				}
+
 				carryForward := available
 				if carryForward > maxCarryForward {
 					carryForward = maxCarryForward

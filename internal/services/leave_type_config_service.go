@@ -37,10 +37,62 @@ func (s *LeaveTypeConfigService) GetConfig(leaveType models.LeaveType) (*models.
 
 // UpdateConfig updates configuration for a specific leave type
 func (s *LeaveTypeConfigService) UpdateConfig(leaveType models.LeaveType, updates map[string]interface{}) error {
-	updates["updated_at"] = time.Now()
-	return s.db.Model(&models.LeaveTypeConfig{}).
-		Where("leave_type = ?", leaveType).
-		Updates(updates).Error
+	var config models.LeaveTypeConfig
+	if err := s.db.Where("leave_type = ?", leaveType).First(&config).Error; err != nil {
+		return err
+	}
+
+	// Update fields
+	if v, ok := updates["base_entitlement"]; ok {
+		if f, ok := v.(float64); ok {
+			config.BaseEntitlement = f
+		}
+	}
+	if v, ok := updates["prorate_first_year"]; ok {
+		if b, ok := v.(bool); ok {
+			config.ProrateFirstYear = b
+		}
+	}
+	if v, ok := updates["allow_carry_forward"]; ok {
+		if b, ok := v.(bool); ok {
+			config.AllowCarryForward = b
+		}
+	}
+	if v, ok := updates["max_carry_forward_days"]; ok {
+		if f, ok := v.(float64); ok {
+			config.MaxCarryForwardDays = int(f)
+		}
+	}
+	if v, ok := updates["requires_attachment"]; ok {
+		if b, ok := v.(bool); ok {
+			config.RequiresAttachment = b
+		}
+	}
+	if v, ok := updates["min_advance_days"]; ok {
+		if f, ok := v.(float64); ok {
+			config.MinAdvanceDays = int(f)
+		}
+	}
+	if v, ok := updates["is_active"]; ok {
+		if b, ok := v.(bool); ok {
+			config.IsActive = b
+		}
+	}
+
+	// Handle JSONB field
+	if v, ok := updates["years_of_service_tiers"]; ok {
+		if tiers, ok := v.(map[string]interface{}); ok {
+			config.YearsOfServiceTiers = models.JSONMap(tiers)
+		} else if tiers, ok := v.(models.JSONMap); ok {
+			config.YearsOfServiceTiers = tiers
+		} else if v == nil {
+			config.YearsOfServiceTiers = nil
+		}
+	}
+
+	config.UpdatedAt = time.Now()
+
+	return s.db.Save(&config).Error
 }
 
 // SeedDefaultConfigs creates default configurations if none exist

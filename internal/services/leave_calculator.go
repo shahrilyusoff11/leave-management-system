@@ -35,8 +35,9 @@ func (lc *LeaveCalculator) CalculateAnnualLeaveEntitlement(joinedDate time.Time,
 			if monthsWorked > 12 {
 				monthsWorked = 12
 			}
-			// Assuming default annual leave base is 8 for <2 years
-			return (8.0 / 12) * float64(monthsWorked)
+			// Use default entitlement for calculation
+			baseEntitlement := lc.leaveTypeConfigSvc.GetDefaultEntitlement(models.LeaveTypeAnnual, 0)
+			return (baseEntitlement / 12) * float64(monthsWorked)
 		}
 		return defaultEntitlement
 	}
@@ -86,7 +87,8 @@ func (lc *LeaveCalculator) CalculateLeaveEntitlement(leaveType models.LeaveType,
 			if monthsWorked > 12 {
 				monthsWorked = 12
 			}
-			return (8.0 / 12) * float64(monthsWorked)
+			baseEntitlement := lc.leaveTypeConfigSvc.GetDefaultEntitlement(models.LeaveTypeAnnual, 0)
+			return (baseEntitlement / 12) * float64(monthsWorked)
 		}
 
 		return entitlement

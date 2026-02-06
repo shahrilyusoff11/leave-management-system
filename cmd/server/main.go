@@ -68,7 +68,7 @@ func main() {
 	}
 
 	leaveCalculator := services.NewLeaveCalculator(holidayService, leaveTypeConfigService)
-	leaveService := services.NewLeaveService(db.DB, leaveCalculator, auditLogger, holidayService)
+	leaveService := services.NewLeaveService(db.DB, leaveCalculator, auditLogger, holidayService, leaveTypeConfigService)
 	userService := services.NewUserService(db.DB, auditLogger, leaveTypeConfigService)
 	configService := services.NewConfigService(db.DB) // Initialize config service with DB
 	auditService := services.NewAuditService(db.DB)   // Initialize audit service with DB

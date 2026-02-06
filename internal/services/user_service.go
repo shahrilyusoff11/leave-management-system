@@ -92,7 +92,7 @@ func (us *UserService) createDefaultLeaveBalances(tx *gorm.DB, userID uuid.UUID,
 		UserID:           userID,
 		LeaveType:        models.LeaveTypeAnnual,
 		Year:             year,
-		TotalEntitlement: us.leaveTypeConfigSvc.GetDefaultEntitlement(models.LeaveTypeAnnual, 0), // Default for first year
+		TotalEntitlement: us.leaveTypeConfigSvc.GetEntitlement(models.LeaveTypeAnnual, 0), // Default for first year
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
@@ -103,7 +103,7 @@ func (us *UserService) createDefaultLeaveBalances(tx *gorm.DB, userID uuid.UUID,
 		UserID:           userID,
 		LeaveType:        models.LeaveTypeSick,
 		Year:             year,
-		TotalEntitlement: us.leaveTypeConfigSvc.GetDefaultEntitlement(models.LeaveTypeSick, 0), // Default for first 2 years
+		TotalEntitlement: us.leaveTypeConfigSvc.GetEntitlement(models.LeaveTypeSick, 0), // Default for first 2 years
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
