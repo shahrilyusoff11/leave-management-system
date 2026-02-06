@@ -165,7 +165,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean, onCl
                 if (Array.isArray(response.data)) {
                     // Filter users who can be managers (manager, hr, admin roles)
                     const potentialManagers = response.data.filter((u: User) =>
-                        ['manager', 'hr', 'admin', 'sysadmin'].includes(u.role)
+                        ['manager', 'hod', 'hr', 'admin', 'sysadmin'].includes(u.role)
                     );
                     setManagers(potentialManagers);
                 }
@@ -233,6 +233,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean, onCl
                         >
                             <option value="staff">Staff</option>
                             <option value="manager">Manager</option>
+                            <option value="hod">Head of Department</option>
                             <option value="hr">HR</option>
                             <option value="admin">Admin</option>
                         </select>
@@ -304,7 +305,7 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
 
             if (Array.isArray(allUsersResponse.data)) {
                 const potentialManagers = allUsersResponse.data.filter((u: User) =>
-                    ['manager', 'hr', 'admin', 'sysadmin'].includes(u.role) && u.id !== user.id
+                    ['manager', 'hod', 'hr', 'admin', 'sysadmin'].includes(u.role) && u.id !== user.id
                 );
                 setManagers(potentialManagers);
             }
@@ -482,6 +483,7 @@ const EditUserModal = ({ user, isOpen, onClose, onSuccess }: { user: User, isOpe
                                 >
                                     <option value="staff">Staff</option>
                                     <option value="manager">Manager</option>
+                                    <option value="hod">Head of Department</option>
                                     <option value="hr">HR</option>
                                     <option value="admin">Admin</option>
                                 </select>

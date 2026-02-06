@@ -14,6 +14,7 @@ const (
 	RoleAdmin    UserRole = "admin"
 	RoleHR       UserRole = "hr"
 	RoleManager  UserRole = "manager"
+	RoleHOD      UserRole = "hod"
 	RoleStaff    UserRole = "staff"
 )
 

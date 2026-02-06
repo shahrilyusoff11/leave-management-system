@@ -69,7 +69,7 @@ func main() {
 
 	leaveCalculator := services.NewLeaveCalculator(holidayService, leaveTypeConfigService)
 	leaveService := services.NewLeaveService(db.DB, leaveCalculator, auditLogger, holidayService, leaveTypeConfigService)
-	userService := services.NewUserService(db.DB, auditLogger, leaveTypeConfigService)
+	userService := services.NewUserService(db.DB, auditLogger, leaveTypeConfigService, leaveCalculator)
 	configService := services.NewConfigService(db.DB) // Initialize config service with DB
 	auditService := services.NewAuditService(db.DB)   // Initialize audit service with DB
 
@@ -156,7 +156,7 @@ func main() {
 		// Manager routes
 		manager := protected.Group("")
 		manager.Use(authMiddleware.RequireAnyRole([]models.UserRole{
-			models.RoleManager, models.RoleHR, models.RoleAdmin, models.RoleSysAdmin,
+			models.RoleManager, models.RoleHOD, models.RoleHR, models.RoleAdmin, models.RoleSysAdmin,
 		}))
 		{
 			manager.GET("/team/leave-requests", leaveHandler.GetTeamLeaveRequests)

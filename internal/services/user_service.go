@@ -15,13 +15,15 @@ type UserService struct {
 	db                 *gorm.DB
 	auditLogger        *logger.AuditLogger
 	leaveTypeConfigSvc *LeaveTypeConfigService
+	leaveCalculator    *LeaveCalculator
 }
 
-func NewUserService(db *gorm.DB, auditLogger *logger.AuditLogger, leaveTypeConfigSvc *LeaveTypeConfigService) *UserService {
+func NewUserService(db *gorm.DB, auditLogger *logger.AuditLogger, leaveTypeConfigSvc *LeaveTypeConfigService, leaveCalculator *LeaveCalculator) *UserService {
 	return &UserService{
 		db:                 db,
 		auditLogger:        auditLogger,
 		leaveTypeConfigSvc: leaveTypeConfigSvc,
+		leaveCalculator:    leaveCalculator,
 	}
 }
 
@@ -81,29 +83,31 @@ func (us *UserService) CreateUser(user *models.User) error {
 		}
 
 		// Create default leave balances
-		return us.createDefaultLeaveBalances(tx, user.ID, initialBalanceYear)
+		return us.createDefaultLeaveBalances(tx, user.ID, user.JoinedDate, initialBalanceYear)
 	})
 }
 
-func (us *UserService) createDefaultLeaveBalances(tx *gorm.DB, userID uuid.UUID, year int) error {
+func (us *UserService) createDefaultLeaveBalances(tx *gorm.DB, userID uuid.UUID, joinedDate time.Time, year int) error {
 	// Create annual leave balance
+	annualEntitlement := us.leaveCalculator.CalculateAnnualLeaveEntitlement(joinedDate, year)
 	annualBalance := models.LeaveBalance{
 		ID:               uuid.New(),
 		UserID:           userID,
 		LeaveType:        models.LeaveTypeAnnual,
 		Year:             year,
-		TotalEntitlement: us.leaveTypeConfigSvc.GetEntitlement(models.LeaveTypeAnnual, 0), // Default for first year
+		TotalEntitlement: annualEntitlement,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
 
 	// Create sick leave balance
+	sickEntitlement := us.leaveCalculator.CalculateSickLeaveEntitlement(joinedDate, year)
 	sickBalance := models.LeaveBalance{
 		ID:               uuid.New(),
 		UserID:           userID,
 		LeaveType:        models.LeaveTypeSick,
 		Year:             year,
-		TotalEntitlement: us.leaveTypeConfigSvc.GetEntitlement(models.LeaveTypeSick, 0), // Default for first 2 years
+		TotalEntitlement: sickEntitlement,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}

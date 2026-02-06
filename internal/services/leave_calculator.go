@@ -20,8 +20,8 @@ func NewLeaveCalculator(holidayService *HolidayService, leaveTypeConfigSvc *Leav
 
 // Calculate leave entitlement based on database config and years of service
 func (lc *LeaveCalculator) CalculateAnnualLeaveEntitlement(joinedDate time.Time, currentYear int) float64 {
-	// Calculate years of service based on anniversary date relative to start of entitlement year
-	calculationDate := time.Date(currentYear, time.January, 1, 0, 0, 0, 0, joinedDate.Location())
+	// Calculate years of service based on anniversary date relative to end of entitlement year
+	calculationDate := time.Date(currentYear, time.December, 31, 0, 0, 0, 0, joinedDate.Location())
 	yearsOfService := currentYear - joinedDate.Year()
 	if joinedDate.AddDate(yearsOfService, 0, 0).After(calculationDate) {
 		yearsOfService--
@@ -67,8 +67,8 @@ func (lc *LeaveCalculator) CalculateAnnualLeaveEntitlement(joinedDate time.Time,
 }
 
 func (lc *LeaveCalculator) CalculateSickLeaveEntitlement(joinedDate time.Time, currentYear int) float64 {
-	// Calculate years of service based on anniversary date relative to start of entitlement year
-	calculationDate := time.Date(currentYear, time.January, 1, 0, 0, 0, 0, joinedDate.Location())
+	// Calculate years of service based on anniversary date relative to end of entitlement year
+	calculationDate := time.Date(currentYear, time.December, 31, 0, 0, 0, 0, joinedDate.Location())
 	yearsOfService := currentYear - joinedDate.Year()
 	if joinedDate.AddDate(yearsOfService, 0, 0).After(calculationDate) {
 		yearsOfService--
@@ -89,8 +89,8 @@ func (lc *LeaveCalculator) CalculateSickLeaveEntitlement(joinedDate time.Time, c
 
 // CalculateLeaveEntitlement calculates entitlement for any leave type
 func (lc *LeaveCalculator) CalculateLeaveEntitlement(leaveType models.LeaveType, joinedDate time.Time, currentYear int) float64 {
-	// Calculate years of service based on anniversary date relative to start of entitlement year
-	calculationDate := time.Date(currentYear, time.January, 1, 0, 0, 0, 0, joinedDate.Location())
+	// Calculate years of service based on anniversary date relative to end of entitlement year
+	calculationDate := time.Date(currentYear, time.December, 31, 0, 0, 0, 0, joinedDate.Location())
 	yearsOfService := currentYear - joinedDate.Year()
 	if joinedDate.AddDate(yearsOfService, 0, 0).After(calculationDate) {
 		yearsOfService--
@@ -134,8 +134,10 @@ func (lc *LeaveCalculator) CalculateLeaveEntitlement(leaveType models.LeaveType,
 }
 
 // calculateEntitlementWithTiers applies years of service bonus from config
+// Uses non-cumulative logic: finding the highest applicable tier
 func (lc *LeaveCalculator) calculateEntitlementWithTiers(config *models.LeaveTypeConfig, yearsOfService int) float64 {
 	entitlement := config.BaseEntitlement
+	maxBonus := 0.0
 
 	if config.YearsOfServiceTiers != nil {
 		for years, bonus := range config.YearsOfServiceTiers {
@@ -145,17 +147,22 @@ func (lc *LeaveCalculator) calculateEntitlementWithTiers(config *models.LeaveTyp
 			}
 
 			if yearsOfService >= yearsThreshold {
+				var currentBonus float64
 				switch b := bonus.(type) {
 				case float64:
-					entitlement += b
+					currentBonus = b
 				case int:
-					entitlement += float64(b)
+					currentBonus = float64(b)
+				}
+
+				if currentBonus > maxBonus {
+					maxBonus = currentBonus
 				}
 			}
 		}
 	}
 
-	return entitlement
+	return entitlement + maxBonus
 }
 
 // Calculate working days between dates, excluding weekends and public holidays
