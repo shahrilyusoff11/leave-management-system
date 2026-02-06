@@ -25,8 +25,20 @@ func (lc *LeaveCalculator) CalculateAnnualLeaveEntitlement(joinedDate time.Time,
 	// Get config from database
 	config, err := lc.leaveTypeConfigSvc.GetConfig(models.LeaveTypeAnnual)
 	if err != nil {
-		// Fallback to hardcoded defaults
-		return lc.getDefaultAnnualEntitlement(yearsOfService, joinedDate)
+		// Fallback to centralized defaults
+		defaultEntitlement := lc.leaveTypeConfigSvc.GetDefaultEntitlement(models.LeaveTypeAnnual, yearsOfService)
+
+		// Handle probation/first year logic manually for fallback if needed, or just return default
+		// For first year annual leave, we might need proration even with defaults
+		if yearsOfService == 0 {
+			monthsWorked := int(time.Since(joinedDate).Hours()/24/30) + 1
+			if monthsWorked > 12 {
+				monthsWorked = 12
+			}
+			// Assuming default annual leave base is 8 for <2 years
+			return (8.0 / 12) * float64(monthsWorked)
+		}
+		return defaultEntitlement
 	}
 
 	// Calculate base entitlement with years of service tiers
@@ -51,8 +63,8 @@ func (lc *LeaveCalculator) CalculateSickLeaveEntitlement(joinedDate time.Time, c
 	// Get config from database
 	config, err := lc.leaveTypeConfigSvc.GetConfig(models.LeaveTypeSick)
 	if err != nil {
-		// Fallback to hardcoded defaults
-		return lc.getDefaultSickEntitlement(yearsOfService)
+		// Fallback to centralized defaults
+		return lc.leaveTypeConfigSvc.GetDefaultEntitlement(models.LeaveTypeSick, yearsOfService)
 	}
 
 	return lc.calculateEntitlementWithTiers(config, yearsOfService)
@@ -65,21 +77,19 @@ func (lc *LeaveCalculator) CalculateLeaveEntitlement(leaveType models.LeaveType,
 	// Get config from database
 	config, err := lc.leaveTypeConfigSvc.GetConfig(leaveType)
 	if err != nil {
-		// Fallback to type-specific defaults
-		switch leaveType {
-		case models.LeaveTypeAnnual:
-			return lc.getDefaultAnnualEntitlement(yearsOfService, joinedDate)
-		case models.LeaveTypeSick:
-			return lc.getDefaultSickEntitlement(yearsOfService)
-		case models.LeaveTypeMaternity:
-			return 98
-		case models.LeaveTypePaternity:
-			return 7
-		case models.LeaveTypeHospitalization:
-			return 60
-		default:
-			return 0
+		// Fallback to centralized defaults
+		entitlement := lc.leaveTypeConfigSvc.GetDefaultEntitlement(leaveType, yearsOfService)
+
+		// Special handling for first year annual leave fallback
+		if leaveType == models.LeaveTypeAnnual && yearsOfService == 0 {
+			monthsWorked := int(time.Since(joinedDate).Hours()/24/30) + 1
+			if monthsWorked > 12 {
+				monthsWorked = 12
+			}
+			return (8.0 / 12) * float64(monthsWorked)
 		}
+
+		return entitlement
 	}
 
 	// Calculate base entitlement with years of service tiers
@@ -120,35 +130,6 @@ func (lc *LeaveCalculator) calculateEntitlementWithTiers(config *models.LeaveTyp
 	}
 
 	return entitlement
-}
-
-// Fallback methods for when config is not available
-func (lc *LeaveCalculator) getDefaultAnnualEntitlement(yearsOfService int, joinedDate time.Time) float64 {
-	if yearsOfService == 0 {
-		monthsWorked := int(time.Since(joinedDate).Hours()/24/30) + 1
-		if monthsWorked > 12 {
-			monthsWorked = 12
-		}
-		return (8.0 / 12) * float64(monthsWorked)
-	}
-
-	switch yearsOfService {
-	case 1, 2:
-		return 8
-	case 3, 4:
-		return 12
-	default:
-		return 16
-	}
-}
-
-func (lc *LeaveCalculator) getDefaultSickEntitlement(yearsOfService int) float64 {
-	if yearsOfService < 2 {
-		return 14
-	} else if yearsOfService < 5 {
-		return 18
-	}
-	return 22
 }
 
 // Calculate working days between dates, excluding weekends and public holidays

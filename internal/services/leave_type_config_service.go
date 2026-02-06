@@ -55,7 +55,7 @@ func (s *LeaveTypeConfigService) SeedDefaultConfigs() error {
 		{
 			ID:                  uuid.New(),
 			LeaveType:           models.LeaveTypeAnnual,
-			BaseEntitlement:     8,
+			BaseEntitlement:     12,
 			YearsOfServiceTiers: models.JSONMap{"2": 4, "5": 8},
 			ProrateFirstYear:    true,
 			AllowCarryForward:   true,
@@ -162,7 +162,7 @@ func (s *LeaveTypeConfigService) GetEntitlement(leaveType models.LeaveType, year
 	config, err := s.GetConfig(leaveType)
 	if err != nil {
 		// Return hardcoded defaults if config not found
-		return s.getDefaultEntitlement(leaveType, yearsOfService)
+		return s.GetDefaultEntitlement(leaveType, yearsOfService)
 	}
 
 	entitlement := config.BaseEntitlement
@@ -190,13 +190,13 @@ func (s *LeaveTypeConfigService) GetEntitlement(leaveType models.LeaveType, year
 	return entitlement
 }
 
-// getDefaultEntitlement returns hardcoded defaults (fallback)
-func (s *LeaveTypeConfigService) getDefaultEntitlement(leaveType models.LeaveType, yearsOfService int) float64 {
+// GetDefaultEntitlement returns hardcoded defaults (fallback)
+func (s *LeaveTypeConfigService) GetDefaultEntitlement(leaveType models.LeaveType, yearsOfService int) float64 {
 	switch leaveType {
 	case models.LeaveTypeAnnual:
 		switch {
 		case yearsOfService < 2:
-			return 8
+			return 12
 		case yearsOfService < 5:
 			return 12
 		default:
