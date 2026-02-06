@@ -150,6 +150,8 @@ func main() {
 
 		// Public holidays (accessible by all authenticated users for leave calculation)
 		protected.GET("/public-holidays", adminHandler.GetPublicHolidays)
+		// Leave type configs (accessible by all authenticated users)
+		protected.GET("/leave-type-configs", adminHandler.GetLeaveTypeConfigs)
 
 		// Manager routes
 		manager := protected.Group("")
@@ -193,7 +195,6 @@ func main() {
 			admin.PUT("/config", adminHandler.UpdateSystemConfig)
 			admin.POST("/year-end-process", adminHandler.TriggerYearEndProcess)
 			admin.GET("/audit-logs", adminHandler.GetAuditLogs)
-			admin.GET("/leave-type-configs", adminHandler.GetLeaveTypeConfigs)
 			admin.PUT("/leave-type-configs/:type", adminHandler.UpdateLeaveTypeConfig)
 		}
 

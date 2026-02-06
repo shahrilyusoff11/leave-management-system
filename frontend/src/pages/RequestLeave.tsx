@@ -25,6 +25,12 @@ interface PublicHoliday {
     date: string;
 }
 
+interface LeaveTypeConfig {
+    leave_type: string;
+    is_active: boolean;
+    requires_attachment: boolean;
+}
+
 const RequestLeave: React.FC = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -32,6 +38,7 @@ const RequestLeave: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
     const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
+    const [leaveConfigs, setLeaveConfigs] = useState<LeaveTypeConfig[]>([]);
     const { register, handleSubmit, setValue, formState: { errors }, watch } = useForm<RequestFormData>({
         resolver: zodResolver(requestSchema),
         defaultValues: {
@@ -43,20 +50,28 @@ const RequestLeave: React.FC = () => {
     const endDate = watch('end_date');
     const leaveType = watch('leave_type');
 
-    // Fetch public holidays on mount
+    // Fetch public holidays and leave configs on mount
     useEffect(() => {
-        const fetchHolidays = async () => {
+        const fetchData = async () => {
             try {
                 const currentYear = new Date().getFullYear();
-                const response = await api.get(`/public-holidays?year=${currentYear}`);
-                if (Array.isArray(response.data)) {
-                    setHolidays(response.data);
+                const [holidaysRes, configsRes] = await Promise.all([
+                    api.get(`/public-holidays?year=${currentYear}`),
+                    api.get('/leave-type-configs')
+                ]);
+
+                if (Array.isArray(holidaysRes.data)) {
+                    setHolidays(holidaysRes.data);
+                }
+
+                if (Array.isArray(configsRes.data)) {
+                    setLeaveConfigs(configsRes.data);
                 }
             } catch (err) {
-                console.error('Failed to fetch holidays', err);
+                console.error('Failed to fetch data', err);
             }
         };
-        fetchHolidays();
+        fetchData();
     }, []);
 
     // Check if a date is a public holiday
@@ -137,7 +152,13 @@ const RequestLeave: React.FC = () => {
             // Backend model takes time.Time. JSON unmarshaler usually handles RFC3339.
             // Native date input gives YYYY-MM-DD.
             // We need to append time or let backend handle it.
-            // Let's send ISO string with T00:00:00Z to be safe.
+            // Validate attachment requirement based on config
+            const selectedConfig = leaveConfigs.find(c => c.leave_type === data.leave_type);
+            if (selectedConfig?.requires_attachment && !data.attachment_url) {
+                setError(`Attachment is required for ${data.leave_type} leave`);
+                setIsLoading(false);
+                return;
+            }
 
             const payload = {
                 ...data,
@@ -156,15 +177,6 @@ const RequestLeave: React.FC = () => {
         }
     };
 
-    const attachmentLabels: Record<string, string> = {
-        sick: "Medical Certificate",
-        hospitalization: "Admission Letter / Medical Certificate",
-        maternity: "Medical Certificate",
-        paternity: "Birth Certificate / Medical Certificate",
-        emergency: "Supporting Document",
-        special: "Supporting Document",
-        unpaid: "Supporting Document"
-    };
 
     return (
         <div className="max-w-2xl mx-auto">
@@ -188,14 +200,16 @@ const RequestLeave: React.FC = () => {
                                     {...register('leave_type')}
                                     className="flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
                                 >
-                                    <option value="annual">Annual Leave</option>
-                                    <option value="sick">Sick Leave</option>
-                                    <option value="emergency">Emergency Leave</option>
-                                    <option value="unpaid">Unpaid Leave</option>
-                                    <option value="maternity">Maternity Leave</option>
-                                    <option value="paternity">Paternity Leave</option>
-                                    <option value="hospitalization">Hospitalization</option>
-                                    <option value="special">Special Leave</option>
+                                    {leaveConfigs
+                                        .filter(c => c.is_active)
+                                        .map(c => (
+                                            <option key={c.leave_type} value={c.leave_type}>
+                                                {c.leave_type.charAt(0).toUpperCase() + c.leave_type.slice(1).replace('_', ' ')}
+                                            </option>
+                                        ))
+                                    }
+                                    {/* Fallback if configs not loaded yet */}
+                                    {leaveConfigs.length === 0 && <option value="annual">Annual Leave</option>}
                                 </select>
                                 {errors.leave_type && <p className="mt-1 text-sm text-red-500">{errors.leave_type.message}</p>}
                             </div>
@@ -234,9 +248,12 @@ const RequestLeave: React.FC = () => {
                                 {errors.reason && <p className="mt-1 text-sm text-red-500">{errors.reason.message}</p>}
                             </div>
 
-                            {leaveType && attachmentLabels[leaveType] && (
+                            {leaveType && (
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">{attachmentLabels[leaveType]} (Optional)</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                        Attachment
+                                        {leaveConfigs.find(c => c.leave_type === leaveType)?.requires_attachment ? ' (Required)' : ' (Optional)'}
+                                    </label>
                                     <div className="flex items-center gap-2">
                                         <input
                                             type="file"

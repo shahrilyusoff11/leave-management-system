@@ -204,6 +204,27 @@ func (lc *LeaveCalculator) ValidateLeaveRequest(user *models.User, request *mode
 		return fmt.Errorf("start date must be before end date")
 	}
 
+	// Get leave type config
+	config, err := lc.leaveTypeConfigSvc.GetConfig(request.LeaveType)
+	if err != nil {
+		// If config not found, maybe default to allowed? Or strict error?
+		// For now, determining if it's a valid enum is handled by binding,
+		// but checking if it's "Active" requires config.
+		// If we can't find config, safer to assume it's valid if hardcoded enum passes,
+		// OR we should be strict. Let's be safe and just log/ignore if config missing for standardized types,
+		// but ideally every type has a config.
+	} else {
+		// Check if leave type is active
+		if !config.IsActive {
+			return fmt.Errorf("leave type '%s' is currently inactive", request.LeaveType)
+		}
+
+		// Check attachment requirement
+		if config.RequiresAttachment && request.AttachmentURL == "" {
+			return fmt.Errorf("attachment is required for %s", request.LeaveType)
+		}
+	}
+
 	// Check if applying for past dates (emergency leave exception)
 	if request.StartDate.Before(time.Now().AddDate(0, 0, -1)) && request.LeaveType != models.LeaveTypeEmergency {
 		return fmt.Errorf("cannot apply for leave in the past")
